@@ -20,32 +20,34 @@ class TQAgent:
         self.episode = 0    # current episode
         self.episode_count = episode_count  # nr. of episodes
 
+        self.Q_PATH = 'data/qtables/*'
+        self.R_PATH = 'data/rewards/*'
+
     def fn_init(self, gameboard):
         self.gameboard = gameboard
         self.tiles = len(self.gameboard.tiles)
         self.reward_tots = np.zeros(self.episode_count)
 
-        self.Na = 9*self.gameboard.N_col
-        self.Ns = np.power(2, self.gameboard.N_col*self.gameboard.N_row)*self.tiles
+        self.Na = 9*self.gameboard.N_col  # nr. of actions
+        self.Ns = np.power(2, self.gameboard.N_col*self.gameboard.N_row)*self.tiles  # nr. of states
 
-        os.system('rm -rf data/qtables/*')
-        os.system('rm -rf data/rewards/*')
+        # clear directories from old files
+        os.system('rm -rf ' + self.Q_PATH)
+        os.system('rm -rf ' + self.R_PATH)
 
-        '''for n in range(self.episode_count):
-            self.q_files.append(h5py.File(f'data/qtables/q{n}.hdf5', 'x'))'''
+        self.q_file = h5py.File(f'data/qtables/q.hdf5', 'x')  # create h5py-file for qtable
+        self.q_table = self.q_file.create_dataset('q_table', (self.Ns, self.Na), dtype=np.dtype(float))  # dataset from qfile
 
-        self.q_file = h5py.File(f'data/qtables/q.hdf5', 'x')
-        self.q_table = self.q_file.create_dataset('q_table', (self.Ns, self.Na), dtype=np.dtype(float))
-
+        # maps of state id:s -> index and action index -> action
         self.state_id_to_idx = self.state_id_to_idx()
         self.idx_to_action = self.idx_to_action()
 
-        # rewards?
-
+    # load strategy file
     def fn_load_strategy(self, strategy_file):
         self.q_file = h5py.File(strategy_file, 'r')
-        self.q_table = self.q_file['Qtable']
+        self.q_table = self.q_file['q_table']
 
+    # encode states, returns a unique id for a given state matrix + tile
     @staticmethod
     def get_state_id(state_matrix, tile_id):
         state_flat = np.append(state_matrix.flatten(), np.ones(tile_id))
@@ -73,7 +75,7 @@ class TQAgent:
                 idx += 1
         return dict(zip(state_lst, np.arange(0, states*self.tiles)))
 
-    # returns map of (tile, rot, col) as key and corresponding index in q-table as value
+    # returns map with action index as key and (tile, rot, col) as corresponding value
     def idx_to_action(self):
         tiles = self.gameboard.tiles
 
@@ -87,9 +89,11 @@ class TQAgent:
                     idx += 1
         return action_map
 
+    # compute state id from a matrix+tile set
     def fn_read_state(self):
         self.state_id = self.get_state_id(self.gameboard.board[:, :], self.gameboard.cur_tile_type)
 
+    # select action using epsilon-greedy
     def fn_select_action(self):
         action_valid = False
         while not action_valid:
@@ -107,11 +111,13 @@ class TQAgent:
             if not action_valid:
                 self.q_table[state_idx, self.action_idx] = np.NaN
 
+    # update qtable based on chosen action
     def fn_reinforce(self, old_state_idx, reward):
         state_idx = self.state_id_to_idx.get(self.state_id)
         self.q_table[old_state_idx, self.action_idx] += self.alpha * (reward + np.nanmax(self.q_table[state_idx, :]) -
                                                                       self.q_table[old_state_idx, self.action_idx])
 
+    # run
     def fn_turn(self):
         if self.gameboard.gameover:
             self.episode += 1
