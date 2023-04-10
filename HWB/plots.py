@@ -16,4 +16,4 @@ def plot_rewards(filename):
     plt.savefig(PLOT_PATH+filename)
 
 
-plot_rewards('1.png')
+plot_rewards('2a.png')

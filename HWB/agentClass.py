@@ -1,14 +1,13 @@
-import h5py
+import random
+
 import numpy as np
-import torch
 import os
-# import random
-# import math
 import h5py
 from itertools import *
-
-# This file provides the skeleton structure for the classes TQAgent and TDQNAgent to be completed by you, the student.
-# Locations starting with # TO BE COMPLETED BY STUDENT indicates missing code that should be written by you.
+from collections import deque
+from keras.models import Sequential
+from keras.layers import Conv2D, MaxPool2D, Activation, Dropout, Input, Flatten, Dense
+from keras.optimizers import Adam
 
 
 class TQAgent:
@@ -155,7 +154,7 @@ class TQAgent:
 
 
 class TDQNAgent:
-    # Agent for learning to play tetris using Q-learning
+    # Agent for learning to play tetris using deep Q-learning
     def __init__(self, alpha, epsilon, epsilon_scale, replay_buffer_size, batch_size, sync_target_episode_count,
                  episode_count):
         # Initialize training parameters
@@ -167,12 +166,33 @@ class TDQNAgent:
         self.sync_target_episode_count = sync_target_episode_count
         self.episode = 0
         self.episode_count = episode_count
-        self.gameboard = None
+
+        self.R_PATH = 'data/rewards/*'
 
     def fn_init(self, gameboard):
-        self.gameboard = gameboard
+        # clear directory from old files
+        os.system('rm -rf ' + self.R_PATH)
 
-        # TODO
+        self.gameboard = gameboard
+        self.reward_tots = np.zeros(self.episode_count)
+        self.tile_identifiers = self.fn_get_tile_identifiers()
+        self.idx_to_action = self.idx_to_action()
+
+        self.Na = 9*self.gameboard.N_col    # nr. of actions
+        self.Ns = np.power(2, self.gameboard.N_col*self.gameboard.N_row)*len(self.gameboard.tiles)    # nr. of states
+
+        self.current_qvals = np.zeros(self.Na)
+        self.current_tile = self.gameboard.cur_tile_type
+        self.current_board = self.gameboard.board
+        self.current_state = -1*np.ones((self.gameboard.N_row+1, self.gameboard.N_col))
+
+        self.input_shape = (self.gameboard.N_row+1, self.gameboard.N_col, 1)
+        self.model = self.fn_create_model()
+        self.target_model = self.fn_create_model()
+
+        self.exp_buffer = deque(maxlen=self.replay_buffer_size)
+        self.target_update_counter = 0
+
         # This function should be written by you
         # Instructions:
         # In this function you could set up and initialize the states, actions, the Q-networks
@@ -193,12 +213,44 @@ class TDQNAgent:
         # TODO
         # Here you can load the Q-network (to Q-network of self) from the strategy_file
 
+    def fn_get_tile_identifiers(self):
+        tile_types = list(range(4))
+        out = {}
+        for n in range(4):
+            tile_identifier = -1*np.ones(self.gameboard.N_col)
+            tile_identifier[n] = 1
+            out[tile_types[n]] = tile_identifier
+        out[-1] = -1*np.ones(self.gameboard.N_col)
+        return out
+
+    def idx_to_action(self):
+        tiles = self.gameboard.tiles
+
+        action_map = {}
+        idx = 0
+        for i in range(len(tiles)):
+            tmp = tiles[i]
+            for j in range(len(tmp)):
+                for k in range(self.gameboard.N_col):
+                    action_map[idx] = (i, j, k)
+                    idx += 1
+        return action_map
+
     def fn_read_state(self):
-        pass
-        # TODO
+        self.current_board = self.gameboard.board
+        self.current_tile = self.gameboard.cur_tile_type
+
+        tile_id = self.tile_identifiers[self.current_tile]
+
+        empty = -1 * np.ones((5, 4))
+        empty[1:, :] = self.current_board
+        empty[0, :] = tile_id
+
+        self.current_state = empty
+
         # This function should be written by you
         # Instructions:
-        # In this function you could calculate the current state of the gane board
+        # In this function you could calculate the current state of the game board
         # You can for example represent the state as a copy of the game board and the identifier of the current tile
         # This function should not return a value, store the state as an attribute of self
 
@@ -210,32 +262,75 @@ class TDQNAgent:
         # 'self.gameboard.cur_tile_type' identifier of the current tile that should be placed on the game board
         # (integer between 0 and len(self.gameboard.tiles))
 
+    def fn_create_model(self):
+        # using CNN for preprocessing
+        model = Sequential()
+        '''model.add(Conv2D(64, (3, 3), input_shape=self.input_shape))
+        model.add(Activation('relu'))
+        model.add(MaxPool2D(pool_size=(2, 2)))
+        model.add(Dropout(rate=0.2))'''
+
+        '''model.add(Conv2D(64, (2, 2)))
+        model.add(Activation('relu'))
+        model.add(MaxPool2D(pool_size=(2, 2)))
+        model.add(Dropout(rate=0.2))'''
+
+        model.add(Input(shape=self.input_shape))
+        model.add(Flatten())
+
+        model.add(Dense(64))
+        model.add(Dense(self.Na))
+        model.add(Activation('linear'))
+
+        model.compile(loss='mse', optimizer=Adam(learning_rate=self.alpha), metrics=['accuracy'])
+
+        return model
+
+    def fn_update_buffer(self, transition):
+        self.exp_buffer.append(transition)
+
     def fn_select_action(self):
-        pass
-        # TODO
-        # This function should be written by you
-        # Instructions:
-        # Choose and execute an action, based on the output of the Q-network for the current state, or random if
-        # epsilon greedy
-        # This function should not return a value, store the action as an attribute of self and execute the action by
-        # moving the tile to the desired position and orientation
+        action_valid = False
+        while not action_valid:
+            # state_idx = self.state_id_to_idx.get(self.state_id)
 
-        # Useful variables: 
-        # 'self.epsilon' parameter epsilon in epsilon-greedy policy
-        # 'self.epsilon_scale' parameter for the scale of the episode number where epsilon_N changes from unity to
-        # epsilon
+            if np.random.random() < self.epsilon:
+                self.action_idx = np.random.randint(0, self.Na)
+            else:
+                max_q = np.nanmax(self.current_qvals)
+                self.action_idx = np.random.choice(np.nonzero(self.current_qvals == max_q)[0])
 
-        # Useful functions
-        # 'self.gameboard.fn_move(tile_x,tile_orientation)' use this function to execute the selected action
-        # The input argument 'tile_x' contains the column of the tile (0 <= tile_x < self.gameboard.N_col)
-        # The input argument 'tile_orientation' contains the number of 90 degree rotations of the tile
-        # (0 < tile_orientation < # of non-degenerate rotations)
-        # The function returns 1 if the action is not valid and 0 otherwise
-        # You can use this function to map out which actions are valid or not
+            self.action = self.idx_to_action.get(self.action_idx)
+            action_valid = self.gameboard.fn_move(self.action[2], self.action[1]) == 0
+
+            if not action_valid:
+                self.current_qvals[self.action_idx] = np.NaN
 
     def fn_reinforce(self, batch):
-        pass
-        # TODO
+        current_states = np.array([transition[0] for transition in batch])
+        current_qvals_arr = self.model.predict(current_states, verbose=0)
+
+        new_current_states = np.array([transition[3] for transition in batch])
+        future_qvals_arr = self.target_model.predict(new_current_states, verbose=0)
+
+        X = []
+        y = []
+
+        for i, (current_state, action_idx, reward, new_current_state, done) in enumerate(batch):
+            if not done:
+                max_future_q = np.nanmax(future_qvals_arr[i])
+                new_q = reward + max_future_q
+            else:
+                new_q = reward
+
+            self.current_qvals = current_qvals_arr[i]
+            self.current_qvals[action_idx] = new_q
+
+            X.append(self.current_state)
+            y.append(self.current_qvals)
+
+        self.model.fit(np.array(X), np.array(y), batch_size=self.batch_size, verbose=0)
+
         # This function should be written by you
         # Instructions:
         # Update the Q network using a batch of quadruplets (old state, last action, last reward, new state)
@@ -255,43 +350,45 @@ class TDQNAgent:
                 print('episode '+str(self.episode)+'/'+str(self.episode_count)+' (reward: ', str(np.sum(
                     self.reward_tots[range(self.episode-100, self.episode)])), ')')
             if self.episode % 1000 == 0:
-                saveEpisodes = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000]
+                saveEpisodes = np.arange(200000, step=1)
+                # saveEpisodes = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000]
                 if self.episode in saveEpisodes:
-                    pass
-                    # TODO
                     # Here you can save the rewards and the Q-network to data files
+                    # self.model.save(f'data/qnetworks/qmodel__{self.episode}.model')
+                    with open('data/rewards/r.csv', 'a') as f:
+                        f.write(f'{self.episode},{self.reward_tots[self.episode-1]}\n')
+
             if self.episode >= self.episode_count:
                 raise SystemExit(0)
             else:
-                if (len(self.exp_buffer) >= self.replay_buffer_size) and \
-                        ((self.episode % self.sync_target_episode_count) == 0):
-                    pass
-                    # TODO
+                '''if (len(self.exp_buffer) >= self.replay_buffer_size) and \
+                        ((self.episode % self.sync_target_episode_count) == 0):'''
+                if self.episode % self.sync_target_episode_count == 0:
                     # Here you should write line(s) to copy the current network to the target network
+                    self.target_model.set_weights(self.model.get_weights())
                 self.gameboard.fn_restart()
         else:
             # Select and execute action (move the tile to the desired column and orientation)
             self.fn_select_action()
-            # TODO
+
             # Here you should write line(s) to copy the old state into the variable 'old_state' which is later stored
             # in the experience replay buffer
+            old_state = np.copy(self.current_state)
 
             # Drop the tile on the game board
             reward = self.gameboard.fn_drop()
-
-            # TODO
-            # Here you should write line(s) to add the current reward to the total reward for the current episode, so
-            # you can save it to disk later
+            self.reward_tots[self.episode] += reward
 
             # Read the new state
             self.fn_read_state()
 
-            # TODO
             # Here you should write line(s) to store the state in the experience replay buffer
+            transition = (old_state, self.action_idx, reward, self.current_state, self.gameboard.gameover)
+            self.fn_update_buffer(transition)
 
             if len(self.exp_buffer) >= self.replay_buffer_size:
-                # TODO
-                # Here you should write line(s) to create a variable 'batch' containing 'self.batch_size' quadruplets 
+                # Here you should write line(s) to create a variable 'batch' containing 'self.batch_size' quadruplets
+                batch = random.sample(self.exp_buffer, self.batch_size)
                 self.fn_reinforce(batch)
 
 
