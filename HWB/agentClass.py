@@ -5,10 +5,16 @@ import os
 import h5py
 from itertools import *
 from collections import deque
+
+import torch
 from keras.models import Sequential
 from keras.layers import Conv2D, MaxPool2D, Activation, Dropout, Input, Flatten, Dense
 from keras.optimizers import Adam
-
+import tensorflow as tf
+from keras import backend as K
+import gc
+from torch import nn
+from torch import optim
 
 class TQAgent:
     # Agent for learning to play tetris using Q-learning
@@ -153,6 +159,21 @@ class TQAgent:
             self.fn_reinforce(old_state_idx, reward)
 
 
+class Model(nn.Module):
+    def __init__(self, output_size):
+        super().__init__()
+
+        self.layers = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(20, 64),
+            nn.ReLU(),
+            nn.Linear(64, output_size),
+        )
+
+    def forward(self, x):
+        return self.layers(x)
+
+
 class TDQNAgent:
     # Agent for learning to play tetris using deep Q-learning
     def __init__(self, alpha, epsilon, epsilon_scale, replay_buffer_size, batch_size, sync_target_episode_count,
@@ -160,6 +181,7 @@ class TDQNAgent:
         # Initialize training parameters
         self.alpha = alpha
         self.epsilon = epsilon
+        self.epsilonE = 1
         self.epsilon_scale = epsilon_scale
         self.replay_buffer_size = replay_buffer_size
         self.batch_size = batch_size
@@ -174,31 +196,42 @@ class TDQNAgent:
         os.system('rm -rf ' + self.R_PATH)
 
         self.gameboard = gameboard
-        self.reward_tots = np.zeros(self.episode_count)
+        self.reward_tots = torch.zeros(self.episode_count)
         self.tile_identifiers = self.fn_get_tile_identifiers()
         self.idx_to_action = self.idx_to_action()
 
         self.Na = 9*self.gameboard.N_col    # nr. of actions
         self.Ns = np.power(2, self.gameboard.N_col*self.gameboard.N_row)*len(self.gameboard.tiles)    # nr. of states
 
-        self.current_qvals = np.zeros(self.Na)
+        self.current_qvals = torch.zeros(self.Na)
         self.current_tile = self.gameboard.cur_tile_type
         self.current_board = self.gameboard.board
         self.current_state = -1*np.ones((self.gameboard.N_row+1, self.gameboard.N_col))
 
+        '''using tensorflow
         self.input_shape = (self.gameboard.N_row+1, self.gameboard.N_col, 1)
         self.model = self.fn_create_model()
         self.target_model = self.fn_create_model()
+        self.target_model.set_weights(self.model.get_weights())'''
+
+        # Using pytorch
+        self.model = Model(self.Na)
+        self.target_model = Model(self.Na)
+        self.target_model.load_state_dict(self.model.state_dict())
+
+        self.loss_fct = nn.MSELoss()
+        self.loss = 0
+        self.model_optimizer = optim.Adam(self.model.parameters(), lr=self.alpha)
+        self.target_model_optimizer = optim.Adam(self.target_model.parameters(), lr=self.alpha)
 
         self.exp_buffer = deque(maxlen=self.replay_buffer_size)
-        self.target_update_counter = 0
 
         # This function should be written by you
         # Instructions:
         # In this function you could set up and initialize the states, actions, the Q-networks
         # (one for calculating actions and one target network), experience replay buffer and storage for the rewards
         # You can use any framework for constructing the networks, for example pytorch or tensorflow
-        # This function should not return a value, store Q network etc as attributes of self
+        # This function should not return a value, store Q network etc. as attributes of self
 
         # Useful variables: 
         # 'gameboard.N_row' number of rows in gameboard
@@ -242,28 +275,14 @@ class TDQNAgent:
 
         tile_id = self.tile_identifiers[self.current_tile]
 
-        empty = -1 * np.ones((5, 4))
+        empty = -1 * np.ones((self.gameboard.N_row+1, self.gameboard.N_col))
         empty[1:, :] = self.current_board
         empty[0, :] = tile_id
 
         self.current_state = empty
 
-        # This function should be written by you
-        # Instructions:
-        # In this function you could calculate the current state of the game board
-        # You can for example represent the state as a copy of the game board and the identifier of the current tile
-        # This function should not return a value, store the state as an attribute of self
-
-        # Useful variables: 
-        # 'self.gameboard.N_row' number of rows in gameboard
-        # 'self.gameboard.N_col' number of columns in gameboard
-        # 'self.gameboard.board[index_row,index_col]' table indicating if row 'index_row' and column 'index_col' is
-        # occupied (+1) or free (-1)
-        # 'self.gameboard.cur_tile_type' identifier of the current tile that should be placed on the game board
-        # (integer between 0 and len(self.gameboard.tiles))
-
+    # using tensorflow
     def fn_create_model(self):
-        # using CNN for preprocessing
         model = Sequential()
         '''model.add(Conv2D(64, (3, 3), input_shape=self.input_shape))
         model.add(Activation('relu'))
@@ -279,6 +298,9 @@ class TDQNAgent:
         model.add(Flatten())
 
         model.add(Dense(64))
+        model.add(Activation('relu'))
+        model.add(Dense(64))
+        model.add(Activation('relu'))
         model.add(Dense(self.Na))
         model.add(Activation('linear'))
 
@@ -289,12 +311,20 @@ class TDQNAgent:
     def fn_update_buffer(self, transition):
         self.exp_buffer.append(transition)
 
+    def get_qvals(self, state):
+        return self.model(state.reshape(-1, *state.shape))
+    # return self.model.predict(state, verbose=0)[0]  # using tensorflow
+
+    def fn_decay_epsilon(self):
+        self.epsilonE = np.maximum(self.epsilon, 1-self.episode/self.epsilon_scale)
+
     def fn_select_action(self):
         action_valid = False
         while not action_valid:
-            # state_idx = self.state_id_to_idx.get(self.state_id)
+            rand = np.random.random()
+            self.current_qvals = self.get_qvals(self.current_state)
 
-            if np.random.random() < self.epsilon:
+            if rand < self.epsilonE:
                 self.action_idx = np.random.randint(0, self.Na)
             else:
                 max_q = np.nanmax(self.current_qvals)
@@ -308,10 +338,12 @@ class TDQNAgent:
 
     def fn_reinforce(self, batch):
         current_states = np.array([transition[0] for transition in batch])
-        current_qvals_arr = self.model.predict(current_states, verbose=0)
+        current_qvals_arr = self.model(current_states)
+        # current_qvals_arr = self.model.predict(current_states, verbose=0)  # using tf
 
         new_current_states = np.array([transition[3] for transition in batch])
-        future_qvals_arr = self.target_model.predict(new_current_states, verbose=0)
+        future_qvals_arr = self.target_model(new_current_states)
+        # future_qvals_arr = self.target_model.predict(new_current_states, verbose=0)  # using tf
 
         X = []
         y = []
@@ -323,13 +355,20 @@ class TDQNAgent:
             else:
                 new_q = reward
 
-            self.current_qvals = current_qvals_arr[i]
-            self.current_qvals[action_idx] = new_q
+            current_qvals = current_qvals_arr[i]
+            current_qvals[action_idx] = new_q
 
-            X.append(self.current_state)
-            y.append(self.current_qvals)
+            X.append(current_state)
+            y.append(current_qvals)
 
-        self.model.fit(np.array(X), np.array(y), batch_size=self.batch_size, verbose=0)
+        # using torch
+        self.model_optimizer.zero_grad()
+        self.loss = self.loss_fct(self.target_model.forward(np.array(X)), np.array(y))
+        self.loss.backward()
+
+        self.model_optimizer.step()
+
+        # self.model.fit(np.array(X), np.array(y), batch_size=self.batch_size, verbose=0)  # using tf
 
         # This function should be written by you
         # Instructions:
@@ -348,9 +387,9 @@ class TDQNAgent:
             self.episode += 1
             if self.episode % 100 == 0:
                 print('episode '+str(self.episode)+'/'+str(self.episode_count)+' (reward: ', str(np.sum(
-                    self.reward_tots[range(self.episode-100, self.episode)])), ')')
-            if self.episode % 1000 == 0:
-                saveEpisodes = np.arange(200000, step=1)
+                    self.reward_tots[range(self.episode-100, self.episode)])), ')', f', epsilon_E: {self.epsilonE}')
+            if self.episode % 10 == 0:
+                saveEpisodes = np.arange(self.episode_count+1, step=1)
                 # saveEpisodes = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000]
                 if self.episode in saveEpisodes:
                     # Here you can save the rewards and the Q-network to data files
@@ -361,9 +400,8 @@ class TDQNAgent:
             if self.episode >= self.episode_count:
                 raise SystemExit(0)
             else:
-                '''if (len(self.exp_buffer) >= self.replay_buffer_size) and \
-                        ((self.episode % self.sync_target_episode_count) == 0):'''
-                if self.episode % self.sync_target_episode_count == 0:
+                if (len(self.exp_buffer) >= self.replay_buffer_size) and \
+                        ((self.episode % self.sync_target_episode_count) == 0):
                     # Here you should write line(s) to copy the current network to the target network
                     self.target_model.set_weights(self.model.get_weights())
                 self.gameboard.fn_restart()
@@ -390,6 +428,9 @@ class TDQNAgent:
                 # Here you should write line(s) to create a variable 'batch' containing 'self.batch_size' quadruplets
                 batch = random.sample(self.exp_buffer, self.batch_size)
                 self.fn_reinforce(batch)
+                self.fn_decay_epsilon()
+                K.clear_session()
+                gc.collect()
 
 
 class THumanAgent:
