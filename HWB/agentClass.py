@@ -383,13 +383,14 @@ class TDQNAgent:
             transition = (old_state, self.action_idx, reward, self.current_state, self.gameboard.gameover)
             self.fn_update_buffer(transition)
 
+            self.fn_decay_epsilon()
+
             if len(self.exp_buffer) >= self.replay_buffer_size:
                 # Here you should write line(s) to create a variable 'batch' containing 'self.batch_size' quadruplets
                 batch = random.sample(self.exp_buffer, self.batch_size)
                 self.fn_reinforce(batch)
-                self.fn_decay_epsilon()
                 # K.clear_session()  # using tf
-                # gc.collect()
+                gc.collect()
 
 
 class THumanAgent:
