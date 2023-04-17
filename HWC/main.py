@@ -9,34 +9,30 @@ generator = DataGenerator()
 train_data, val_data = generator.generate_data()
 
 ae = Autoencoder((64, 64, 1))
-model = ae.create_model()
+model = ae.model
 
 nEpochs = 50
 
-training_loss = np.zeros(nEpochs)
-validation_loss = np.zeros(nEpochs)
+train_losses = np.zeros(nEpochs)
+val_losses = np.zeros(nEpochs)
 
 for epoch in range(nEpochs):
     for idx, batch in enumerate(train_data):
         train_labels = generator.generate_batch_labels(batch)
-        h = model.fit(x=np.array(batch), y=train_labels, verbose=0)
+        h = model.fit(x=np.array(batch), y=np.array(batch), verbose=0)
+        train_pred = model.predict(np.array(batch), verbose=0)
+        train_loss = ae.loss(y_pred=train_pred, y_true=np.array(batch)).numpy()
 
-        predicted_labels = model.predict(np.array(batch), verbose=0)
-        mae_train = np.sum(np.abs(predicted_labels-train_labels))/2/len(train_labels)
+    train_losses[epoch] = train_loss
 
-    val_labels = generator.generate_batch_labels(val_data[epoch])
-    val_img = np.array(val_data[epoch])
+    val_pred = model.predict(np.array(val_data[epoch]), verbose=0)
+    val_loss = ae.loss(y_pred=val_pred, y_true=np.array(val_data[epoch])).numpy()
+    val_losses[epoch] = val_loss
 
-    predicted_labels = model.predict(val_img, verbose=0)
-    mae_val = np.sum(np.abs(predicted_labels-val_labels))/2/len(val_labels)
+    print(f'--- Epoch nr. {epoch + 1} --- MAE (training): {train_loss} --- MAE (test): {val_loss} ---')
 
-    training_loss[epoch] = mae_train
-    validation_loss[epoch] = mae_val
-
-    print(f'--- Epoch nr. {epoch + 1} --- MAE (training): {mae_train} --- MAE (test): {mae_val} ---')
-
-pd.DataFrame(training_loss).to_csv('csv/training_loss.csv')
-pd.DataFrame(validation_loss).to_csv('csv/validation_loss.csv')
+pd.DataFrame(train_losses).to_csv('csv/training_loss.csv')
+pd.DataFrame(val_losses).to_csv('csv/validation_loss.csv')
 
 
 '''for idx, image in batch0:
