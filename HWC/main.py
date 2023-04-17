@@ -1,5 +1,6 @@
 import deeptrack as dt
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from data_generator import DataGenerator
 from autoencoder import Autoencoder
@@ -10,30 +11,33 @@ train_data, val_data = generator.generate_data()
 ae = Autoencoder((64, 64, 1))
 model = ae.create_model()
 
-# training
+nEpochs = 50
 
-for idx, batch in enumerate(train_data):
-    train_labels = generator.generate_batch_labels(batch)
+training_loss = np.zeros(nEpochs)
+validation_loss = np.zeros(nEpochs)
 
-    rand = np.random.randint(0, 100)
-    val_labels = generator.generate_batch_labels(val_data[rand])
+for epoch in range(nEpochs):
+    for idx, batch in enumerate(train_data):
+        train_labels = generator.generate_batch_labels(batch)
+        h = model.fit(x=np.array(batch), y=train_labels, verbose=0)
 
-    train_img = np.array(batch)
-    val_img = np.array(val_data[rand])
+        predicted_labels = model.predict(np.array(batch), verbose=0)
+        mae_train = np.sum(np.abs(predicted_labels-train_labels))/2/len(train_labels)
 
-    h = model.fit(x=train_img, y=train_labels, validation_data=(val_img, val_labels), epochs=40, verbose=1)
-    print(f'Batch nr. {idx+1}')
+    val_labels = generator.generate_batch_labels(val_data[epoch])
+    val_img = np.array(val_data[epoch])
 
-mae = 0
-for idx, batch in enumerate(val_data):
-    val_labels = generator.generate_batch_labels(batch)
-    val_img = np.array(batch)
+    predicted_labels = model.predict(val_img, verbose=0)
+    mae_val = np.sum(np.abs(predicted_labels-val_labels))/2/len(val_labels)
 
-    predicted_labels = model.predict(val_img)
-    mae += np.sum(np.abs(predicted_labels-val_labels))/2/len(val_labels)
+    training_loss[epoch] = mae_train
+    validation_loss[epoch] = mae_val
 
-mae = mae/len(val_data)
-print(f'Mean average error: {mae}')
+    print(f'--- Epoch nr. {epoch + 1} --- MAE (training): {mae_train} --- MAE (test): {mae_val} ---')
+
+pd.DataFrame(training_loss).to_csv('csv/training_loss.csv')
+pd.DataFrame(validation_loss).to_csv('csv/validation_loss.csv')
+
 
 '''for idx, image in batch0:
     plt.figure()
