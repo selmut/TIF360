@@ -24,8 +24,15 @@ for idx, batch in enumerate(train_data):
     h = model.fit(x=train_img, y=train_labels, validation_data=(val_img, val_labels), epochs=40, verbose=1)
     print(f'Batch nr. {idx+1}')
 
-predicted_labels = model.predict(val_data)
-mae = np.sum(np.abs(predicted_labels-val_labels))/2/len(val_labels)
+mae = 0
+for idx, batch in enumerate(val_data):
+    val_labels = generator.generate_batch_labels(batch)
+    val_img = np.array(batch)
+
+    predicted_labels = model.predict(val_img)
+    mae += np.sum(np.abs(predicted_labels-val_labels))/2/len(val_labels)
+
+mae = mae/len(val_data)
 print(f'Mean average error: {mae}')
 
 '''for idx, image in batch0:

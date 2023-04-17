@@ -1,4 +1,4 @@
-from torch_geometric.nn import GCNConv, GATConv, Linear, TopKPooling, SAGPooling
+from torch_geometric.nn import GCNConv, GATConv, Linear, TopKPooling, SAGPooling, SAGEConv
 import torch.nn.functional as F
 import torch
 
@@ -9,8 +9,9 @@ class GNNNet(torch.nn.Module):
         #torch.manual_seed(12345)
         self.gat_conv1 = GATConv(in_channels, 64)
         self.gat_conv2 = GATConv(64, 128)
+        # self.sage_conv1 = SAGEConv(128, 128)
         self.gat_conv3 = GATConv(128, 128)
-        self.topk_pool = TopKPooling(128, ratio=1)
+        # self.topk_pool = TopKPooling(128, ratio=1)
         self.sag_pool = SAGPooling(128, ratio=1)
         self.lin = Linear(128, out_channels)
 
@@ -20,6 +21,7 @@ class GNNNet(torch.nn.Module):
         x = x.relu()
         x = self.gat_conv2(x, edge_index, edge_attr)
         x = x.relu()
+        # x = self.sage_conv1(x, edge_index)
         x = self.gat_conv3(x, edge_index, edge_attr)
         x = x.relu()
 
@@ -38,7 +40,7 @@ class GNN:
     def __init__(self, in_channels, out_channels):
         self.model = GNNNet(in_channels=in_channels, out_channels=out_channels)
         self.criterion = torch.nn.MSELoss()  # Define loss criterion.
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.0015, amsgrad=True)  # Define optimizer.
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.0008, amsgrad=True)  # Define optimizer.
         self.out_channels = out_channels
 
     def fn_train(self, train_loader):

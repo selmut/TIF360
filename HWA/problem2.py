@@ -57,7 +57,7 @@ for epoch in range(1, epochs):
     train_accs[epoch] = train_acc
     test_accs[epoch] = test_acc
 
-    if test_acc >= 0.95 and epoch > 10:
+    if test_acc >= 0.98 and epoch > 10:
         torch.save(gnn.model, f'models/test/test_acc{test_acc}_train_acc{train_acc}.pt')
 
     print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
