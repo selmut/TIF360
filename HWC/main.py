@@ -21,7 +21,7 @@ for idx, batch in enumerate(train_data):
     train_img = np.array(batch)
     val_img = np.array(val_data[rand])
 
-    h = model.fit(x=train_img, y=train_labels, validation_data=(val_img, val_labels), epochs=40)
+    h = model.fit(x=train_img, y=train_labels, validation_data=(val_img, val_labels), epochs=40, verbose=1)
     print(f'Batch nr. {idx+1}')
 
 predicted_labels = model.predict(val_data)

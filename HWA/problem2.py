@@ -1,5 +1,4 @@
 import numpy as np
-from torch_geometric.datasets import Planetoid
 from torch_geometric.transforms import NormalizeFeatures
 from torch_geometric.loader import DataLoader
 from plots import *
@@ -59,7 +58,7 @@ for epoch in range(1, epochs):
     test_accs[epoch] = test_acc
 
     if test_acc >= 0.95 and epoch > 10:
-        torch.save(gnn.model, f'models/test_acc{test_acc}_train_acc{train_acc}.pt')
+        torch.save(gnn.model, f'models/test/test_acc{test_acc}_train_acc{train_acc}.pt')
 
     print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
 

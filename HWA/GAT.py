@@ -7,12 +7,12 @@ class GNNNet(torch.nn.Module):
     def __init__(self, in_channels, out_channels):
         super(GNNNet, self).__init__()
         #torch.manual_seed(12345)
-        self.gat_conv1 = GATConv(in_channels, 128)
-        self.gat_conv2 = GATConv(128, 64)
-        self.gat_conv3 = GATConv(64, 64)
-        self.topk_pool = TopKPooling(64, ratio=1)
-        self.sag_pool = SAGPooling(64, ratio=1)
-        self.lin = Linear(64, out_channels)
+        self.gat_conv1 = GATConv(in_channels, 64)
+        self.gat_conv2 = GATConv(64, 128)
+        self.gat_conv3 = GATConv(128, 128)
+        self.topk_pool = TopKPooling(128, ratio=1)
+        self.sag_pool = SAGPooling(128, ratio=1)
+        self.lin = Linear(128, out_channels)
 
     def forward(self, x, edge_index, batch, edge_attr):
         # 1. Obtain node embeddings
