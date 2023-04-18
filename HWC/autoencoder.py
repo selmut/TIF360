@@ -5,9 +5,10 @@ from keras.losses import MeanAbsoluteError
 
 
 class Autoencoder:
-    def __init__(self, input_shape):
+    def __init__(self, input_shape, bottleneck_size):
         self.lr = 0.0001
         self.input_shape = input_shape
+        self.bottleneck_size = bottleneck_size
 
         self.input = Input(self.input_shape)
         self.encoder = self.create_encoder()
@@ -20,28 +21,28 @@ class Autoencoder:
 
     def create_encoder(self):
         encoder = Sequential()
-        encoder.add(Conv2D(8, (3, 3), activation='relu', padding='same', input_shape=self.input_shape))
-        encoder.add(MaxPool2D(pool_size=(2, 2)))
-        encoder.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
+        encoder.add(Conv2D(16, (3, 3), activation='relu', padding='same', input_shape=self.input_shape))
         encoder.add(MaxPool2D(pool_size=(2, 2)))
         encoder.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
+        encoder.add(MaxPool2D(pool_size=(2, 2)))
+        encoder.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
         encoder.add(Flatten())
-        encoder.add(Dense(32))
-        encoder.add(Dense(32))
-        encoder.add(Dense(2))
+        encoder.add(Dense(64))
+        encoder.add(Dense(64))
+        encoder.add(Dense(self.bottleneck_size))
         return encoder
 
     def create_decoder(self):
         decoder = Sequential()
-        decoder.add(Dense(32))
-        decoder.add(Dense(32))
-        decoder.add(Dense(16*16*32))
-        decoder.add(Reshape((16, 16, 32)))
+        decoder.add(Dense(64))
+        decoder.add(Dense(64))
+        decoder.add(Dense(16*16*64))
+        decoder.add(Reshape((16, 16, 64)))
+        decoder.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
+        decoder.add(UpSampling2D((2, 2)))
         decoder.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
         decoder.add(UpSampling2D((2, 2)))
         decoder.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
-        decoder.add(UpSampling2D((2, 2)))
-        decoder.add(Conv2D(8, (3, 3), activation='relu', padding='same'))
         decoder.add(Conv2D(1, (3, 3), padding='same'))
         return decoder
 

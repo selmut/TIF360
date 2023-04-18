@@ -1,5 +1,6 @@
 import deeptrack as dt
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 
 
@@ -50,11 +51,26 @@ class DataGenerator:
 
         return train_data, val_data
 
-    def generate_batch_labels(self, batch):
+    def generate_labels(self, data):
         '''train_labels = [generator.generate_labels(train_data0[i]) for i in range(len(train_data0))]
         val_labels = [generator.generate_labels(val_data0[i]) for i in range(len(val_data0))]'''
 
-        labels = np.array([np.array(image.get_property('position')) for image in batch])
+        labels = np.zeros((len(data), 10, 2))
+
+        for idx, batch in enumerate(data):
+            labels[idx, :, :] = np.array([np.array(image.get_property('position')) for image in batch])
 
         # position = image.get_property("position")
         return labels
+
+    def generate_dataset(self):
+        os.system('rm -rf data/*')
+        train_data, val_data = self.generate_data()
+        train_labels = self.generate_labels(train_data)
+        val_labels = self.generate_labels(val_data)
+
+        np.save('data/train_data.npy', train_data)
+        np.save('data/val_data.npy', val_data)
+        np.save('data/train_labels.npy', train_labels)
+        np.save('data/val_labels.npy', val_labels)
+
