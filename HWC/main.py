@@ -16,14 +16,14 @@ val_data = np.load('data/val_data.npy')
 val_labels = np.load('data/val_labels.npy')
 
 nEpochs = 50
-bn_size = 3
+bn_size = 4
 
 ae = Autoencoder((64, 64, 1), bn_size)
 
 train_losses = np.zeros(nEpochs)
 val_losses = np.zeros(nEpochs)
 
-'''for epoch in range(nEpochs):
+for epoch in range(nEpochs):
     for idx, batch in enumerate(train_data):
         # batch_labels = train_labels[idx]
 
@@ -39,14 +39,14 @@ val_losses = np.zeros(nEpochs)
 
     print(f'--- Epoch nr. {epoch+1:02d} --- MAE (training): {train_loss:.4f} --- MAE (validation): {val_loss:.4f} ---')
 
-    if train_loss <= 0.6 and val_loss <= 0.7:
+    if train_loss <= 1 and val_loss <= 1:
         ae.model.save(f'models/train_mae{train_loss:.4f}_test_mae{val_loss:.4f}_bn{bn_size}.keras')
     gc.collect()
 
 pd.DataFrame(train_losses).to_csv('csv/training_loss.csv')
-pd.DataFrame(val_losses).to_csv('csv/validation_loss.csv')'''
+pd.DataFrame(val_losses).to_csv('csv/validation_loss.csv')
 
-loaded_model = load_model('models/train_mae0.2535_test_mae0.1795_bn3.keras')
+'''loaded_model = load_model('models/train_mae0.8426_test_mae0.1731_bn1.keras')
 
 rand = np.random.randint(0, 100)
 predicted_series = loaded_model.predict(np.array(val_data[rand]), verbose=0)
@@ -59,7 +59,7 @@ for idx, image in enumerate(predicted_series):
 for idx, image in enumerate(val_data[rand]):
     plt.figure()
     plt.imshow(image[..., 0])
-    plt.savefig(f'img/original{idx}.png')
+    plt.savefig(f'img/original{idx}.png')'''
 
 '''ae = Autoencoder(images[0].shape)
 model = ae.create_model()

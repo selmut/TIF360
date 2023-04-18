@@ -3,8 +3,8 @@ import pandas as pd
 
 
 def plot_acc(filename):
-    train_acc = pd.read_csv('csv/training_loss.csv', header=None).to_numpy().T
-    test_acc = pd.read_csv('csv/validation_loss.csv', header=None).to_numpy().T
+    train_acc = pd.read_csv('results/bn1/training_loss.csv', header=None).to_numpy().T
+    test_acc = pd.read_csv('results/bn1/validation_loss.csv', header=None).to_numpy().T
 
     plt.figure()
     plt.plot(train_acc[0], train_acc[1])
