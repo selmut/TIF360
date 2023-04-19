@@ -17,6 +17,8 @@ class Autoencoder:
 
         self.optimizer = Adam(learning_rate=self.lr)
         self.model.compile(optimizer=self.optimizer, loss='mae')
+        self.encoder.compile(optimizer=self.optimizer, loss='mae')
+        self.decoder.compile(optimizer=self.optimizer, loss='mae')
         self.loss = MeanAbsoluteError()
 
     def create_encoder(self):
