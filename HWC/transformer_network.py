@@ -16,7 +16,7 @@ class Network:
         self.encoder = encoder
         self.decoder = decoder
 
-        self.transformer = Transformer((10, self.bn), 9, self.bn, 32, 0.3)
+        self.transformer = Transformer((9, self.bn), 9, self.bn, 32, 0.3)
         self.transformer_model = self.transformer.create_transformer()
 
         self.model = self.build_model()
@@ -36,7 +36,7 @@ class Network:
 
         self.input = tf.reshape(self.input, (-1, 64, 64, 1))
         encoder_output = encoder(self.input)
-        encoder_output = tf.reshape(encoder_output, (-1, 10, self.bn))
+        encoder_output = tf.reshape(encoder_output, (-1, 9, self.bn))
 
         # encoder_output = tf.reshape(encoder_output, (-1, 10))
 

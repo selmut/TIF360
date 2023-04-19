@@ -21,7 +21,7 @@ class Transformer:
     def create_transformer(self):
         inputs = Input(shape=self.input_shape)
 
-        t2v = Time2Vector(10)(inputs)
+        t2v = Time2Vector(9)(inputs)
         x = tf.concat([inputs, t2v], axis=-1)
         x = SingleAttention(d_k=self.dk, d_v=self.dv)([x, x, x])
 
