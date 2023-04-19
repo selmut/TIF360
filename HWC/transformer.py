@@ -15,10 +15,10 @@ class Transformer:
         self.dropout = dropout
 
         self.optimizer = Adam(learning_rate=0.0001)
-        self.model = self.transformer_model()
-        self.model.compile(optimizer=self.optimizer, loss='sparse_categorical_crossentropy')
+        self.transformer = self.create_transformer()
+        self.transformer.compile(optimizer=self.optimizer, loss='sparse_categorical_crossentropy')
 
-    def transformer_model(self):
+    def create_transformer(self):
         inputs = Input(shape=self.input_shape)
 
         t2v = Time2Vector(10)(inputs)
