@@ -1,4 +1,4 @@
-from keras.layers import LayerNormalization, MultiHeadAttention, Dropout, Dense, Input
+from keras.layers import LayerNormalization, MultiHeadAttention, Dropout, Dense, Input, Reshape
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.losses import SparseCategoricalCrossentropy
@@ -15,8 +15,8 @@ class Transformer:
         self.dropout = dropout
 
         self.optimizer = Adam(learning_rate=0.0001)
-        self.transformer = self.create_transformer()
-        self.transformer.compile(optimizer=self.optimizer, loss='sparse_categorical_crossentropy')
+        self.model = self.create_transformer()
+        self.model.compile(optimizer=self.optimizer, loss='mae')
 
     def create_transformer(self):
         inputs = Input(shape=self.input_shape)

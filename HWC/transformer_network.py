@@ -3,9 +3,10 @@ from keras.layers import Conv2D, MaxPool2D, Dense, Flatten, ReLU, UpSampling2D, 
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.losses import MeanAbsoluteError
+import tensorflow as tf
 
 
-class Autoencoder:
+class Network:
     def __init__(self, input_shape, encoder, decoder, bn):
         self.lr = 0.0001
         self.input_shape = input_shape
@@ -33,10 +34,14 @@ class Autoencoder:
         encoder.trainable = False
         decoder.trainable = False
 
+        self.input = tf.reshape(self.input, (-1, 64, 64, 1))
         encoder_output = encoder(self.input)
-        encoder_output = encoder_output.reshape(-1, *encoder_output.shape)
+        encoder_output = tf.reshape(encoder_output, (-1, 10, self.bn))
 
-        transformer_output = transformer(encoder_output).numpy()[0]
+        # encoder_output = tf.reshape(encoder_output, (-1, 10))
+
+        transformer_output = transformer(encoder_output)
+        transformer_output = tf.reshape(transformer_output, (-1, self.bn))
 
         decoder_output = decoder(transformer_output)
 
