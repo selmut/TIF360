@@ -1,4 +1,4 @@
-from keras.layers import Conv2D, MaxPool2D, Dense, Flatten, ReLU, UpSampling2D, Reshape, Input
+from keras.layers import Conv2D, MaxPool2D, Dense, Flatten, ReLU, UpSampling2D, Reshape, Input, Dropout
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.losses import MeanAbsoluteError

@@ -1,4 +1,4 @@
-from keras.layers import Layer, Dense
+from keras.layers import Layer, Dense, Dropout, LayerNormalization
 import tensorflow as tf
 import numpy as np
 
@@ -51,3 +51,69 @@ class SingleAttention(Layer):
         v = self.value(inputs[2])
         attn_out = tf.matmul(attn_weights, v)
         return attn_out
+
+
+class MultiAttention(Layer):
+    def __init__(self, nr_heads, d_k, d_v, embedding_dim):
+        super(MultiAttention, self).__init__()
+        self.nr_heads = nr_heads
+        self.d_k = d_k
+        self.d_v = d_v
+        self.embedding_dim = embedding_dim
+        self.attention_heads = []
+
+    def build(self, input_shape):
+        for i in range(self.nr_heads):
+            self.attention_heads.append(SingleAttention(self.d_k, self.d_v))
+        self.linear = tf.keras.layers.Dense(self.embedding_dim)
+
+    def call(self, x):
+        attention = []
+        for i in range(self.nr_heads):
+            attention.append(self.attention_heads[i]([x, x, x]))
+        concat_attention = tf.concat(attention, axis=-1)
+        x = self.linear(concat_attention)
+        return x
+
+class Transformer(Layer):
+    def __init__(self, dk, dv, embedding_len, dropout_rate, seq_len, n_heads):
+        super(Transformer, self).__init__()
+        self.dk = dk
+        self.dv = dv
+        self.dropout_rate = dropout_rate
+        self.seq_len = seq_len
+        self.n_heads = n_heads
+        self.embedding_len = embedding_len
+
+    def build(self, input_shape):
+        self.t2v = Time2Vector(self.seq_len)
+        self.multi_attention = MultiAttention(self.n_heads, self.dk, self.dv, 6)
+        self.dropout = Dropout(self.dropout_rate)
+        self.normalize = LayerNormalization(epsilon=1e-6)
+        self.dense1 = Dense(64, activation='relu')
+        self.dense2 = Dense(32, activation='relu')
+        self.dense3 = Dense(self.embedding_len, activation='relu')
+        self.dense4 = Dense(input_shape[-1])
+
+    def call(self, inputs):
+        t2v = self.t2v(inputs)
+        add = tf.concat([inputs, t2v], axis=-1)
+        x = tf.concat([inputs, t2v], axis=-1)
+
+        x = self.multi_attention(x)
+        x = self.dropout(x)
+        x = x + add
+
+        x = self.normalize(x)
+        x = self.dense1(x)
+        x = self.dense2(x)
+        x = self.dense3(x)
+
+        x = x + add
+        x = self.normalize(x)
+
+        x = self.dropout(x)
+        x = self.dense4(x)
+
+        return x
+

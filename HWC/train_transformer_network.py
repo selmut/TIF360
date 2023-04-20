@@ -3,24 +3,24 @@ import pandas as pd
 import gc
 from keras.models import load_model, save_model
 from transformer_network import Network
-from transformer import Transformer
+import matplotlib.pyplot as plt
 
 nEpochs = 50
-bn_size = 3
+bn_size = 4
 
 train_data = np.load('data/train_data.npy')
 train_labels = np.load('data/train_labels.npy')
 val_data = np.load('data/val_data.npy')
 val_labels = np.load('data/val_labels.npy')
 
-encoder = load_model('models/enc_train_mae0.2423_test_mae0.2677_bn3.keras')
-decoder = load_model('models/dec_train_mae0.2423_test_mae0.2677_bn3.keras')
+encoder = load_model('models/encoders/enc_train_mae0.0777_test_mae0.0403_bn4.keras')
+decoder = load_model('models/decoders/dec_train_mae0.0777_test_mae0.0403_bn4.keras')
 
 encoder.trainable = False
 decoder.trainable = False
 
 # transformer = Transformer((10, 3), 9, 3, 32, 0.3)
-net = Network((64, 64, 1), encoder, decoder, 3)
+net = Network((64, 64, 1), encoder, decoder, bn_size, 9)
 
 train_losses = np.zeros(nEpochs)
 val_losses = np.zeros(nEpochs)
@@ -45,15 +45,29 @@ for epoch in range(nEpochs):
     val_loss = net.loss(y_pred=val_pred, y_true=val_targets).numpy()
     val_losses[epoch] = val_loss
 
-    print(f'--- Epoch nr. {epoch+1:02d} --- MAE (training): {train_loss:.4f} --- MAE (validation): {val_loss:.4f} ---')
+    print(f'--- Epoch nr. {epoch+1:02d} --- MSE (training): {train_loss:.4f} --- MSE (validation): {val_loss:.4f} ---')
 
-    '''if train_loss <= 0.3 and val_loss <= 0.35:
-        net.model.save(f'models/mod_train_mae{train_loss:.4f}_test_mae{val_loss:.4f}_bn{bn_size}.keras')
-        net.encoder.save(f'models/enc_train_mae{train_loss:.4f}_test_mae{val_loss:.4f}_bn{bn_size}.keras')
-        net.decoder.save(f'models/dec_train_mae{train_loss:.4f}_test_mae{val_loss:.4f}_bn{bn_size}.keras')'''
+    if train_loss <= 10 and val_loss <= 15:
+        net.model.save(f'models/transformer_train_mse{train_loss:.4f}_test_mse{val_loss:.4f}_bn{bn_size}')
     gc.collect()
 
 
+'''loaded_model = load_model('models/transformer_train_mae1.1145_test_mae0.4779_bn4')
+current_val_data = val_data[0]
+val_batch = current_val_data[:-1, :, :, :]
+val_targets = current_val_data[1:, :, :, :]
+
+predicted_series = loaded_model.predict(val_batch, verbose=0)
+
+for idx, image in enumerate(predicted_series):
+    plt.figure()
+    plt.imshow(image[..., 0])
+    plt.savefig(f'img/pred{idx}.png')
+
+for idx, image in enumerate(val_targets):
+    plt.figure()
+    plt.imshow(image[..., 0])
+    plt.savefig(f'img/original{idx}.png')'''
 
 
 

@@ -16,7 +16,7 @@ val_data = np.load('data/val_data.npy')
 val_labels = np.load('data/val_labels.npy')
 
 nEpochs = 50
-bn_size = 3
+bn_size = 4
 
 ae = Autoencoder((64, 64, 1), bn_size)
 
@@ -40,15 +40,15 @@ for epoch in range(nEpochs):
     print(f'--- Epoch nr. {epoch+1:02d} --- MAE (training): {train_loss:.4f} --- MAE (validation): {val_loss:.4f} ---')
 
     if train_loss <= 0.3 and val_loss <= 0.35:
-        ae.model.save(f'models/mod_train_mae{train_loss:.4f}_test_mae{val_loss:.4f}_bn{bn_size}.keras')
-        ae.encoder.save(f'models/enc_train_mae{train_loss:.4f}_test_mae{val_loss:.4f}_bn{bn_size}.keras')
-        ae.decoder.save(f'models/dec_train_mae{train_loss:.4f}_test_mae{val_loss:.4f}_bn{bn_size}.keras')
+        ae.model.save(f'models/mod_train_mae{train_loss:.4f}_test_mae{val_loss:.4f}_bn{bn_size}')
+        ae.encoder.save(f'models/enc_train_mae{train_loss:.4f}_test_mae{val_loss:.4f}_bn{bn_size}')
+        ae.decoder.save(f'models/dec_train_mae{train_loss:.4f}_test_mae{val_loss:.4f}_bn{bn_size}')
     gc.collect()
 
 pd.DataFrame(train_losses).to_csv('csv/training_loss.csv')
 pd.DataFrame(val_losses).to_csv('csv/validation_loss.csv')
 
-'''loaded_model = load_model('models/train_mae0.8426_test_mae0.1731_bn1.keras')
+'''loaded_model = load_model('models/mod_train_mae0.2788_test_mae0.2435_bn3')
 
 rand = np.random.randint(0, 100)
 predicted_series = loaded_model.predict(np.array(val_data[rand]), verbose=0)
