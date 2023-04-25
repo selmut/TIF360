@@ -17,13 +17,16 @@ class Network:
         self.encoder = encoder
         self.decoder = decoder
 
-        self.transformer = Transformer(12, 16, 6, 0.5, self.seq_len, 8)
+        self.transformer1 = Transformer(6, 6, 6, 0.4, self.seq_len, 8)
+        self.transformer2 = Transformer(6, 6, 6, 0.4, self.seq_len, 8)
 
         self.model = self.build_model()
 
         self.optimizer = Adam(learning_rate=self.lr)
-        self.model.compile(optimizer=self.optimizer, loss='mse')
-        self.loss = MeanSquaredError()
+        '''self.model.compile(optimizer=self.optimizer, loss='mse')
+        self.loss = MeanSquaredError()'''
+        self.model.compile(optimizer=self.optimizer, loss='mae')
+        self.loss = MeanAbsoluteError()
 
     def build_model(self):
         self.encoder.trainable = False
@@ -34,12 +37,12 @@ class Network:
         encoder_output = tf.reshape(encoder_output, (-1, 9, self.bn))
 
         # encoder_output = tf.reshape(encoder_output, (-1, 10))
-
-        transformer_output = self.transformer(encoder_output)
-        transformer_output = tf.reshape(transformer_output, (-1, self.bn))
+        transformer_output = self.transformer1(encoder_output)
+        # transformer_output = self.transformer2(transformer_output) # TODO implement double stacked transformers
+        # transformer_output = tf.reshape(transformer_output, (-1, self.bn))
 
         decoder_output = self.decoder(transformer_output)
-
+        # decoder_output = tf.reshape(decoder_output, (-1, 1, self.bn))
         model = Model(self.input, decoder_output)
         return model
 

@@ -47,7 +47,7 @@ class DataGenerator:
         dataset = sequential_images >> dt.FlipUD() >> dt.FlipDiagonal() >> dt.FlipLR()
 
         train_data = [dataset.update()() for i in range(1000)]  # 1000 sequences, each a random sphere moving for 10 frames
-        val_data = [dataset.update()() for i in range(100)]  # 100 sequences, each a random sphere moving for 10 frames
+        val_data = [dataset.update()() for i in range(1000)]  # 100 sequences, each a random sphere moving for 10 frames
 
         return train_data, val_data
 
@@ -64,13 +64,41 @@ class DataGenerator:
         return labels
 
     def generate_dataset(self):
-        os.system('rm -rf data/*')
+        #os.system('rm -rf data/*')
         train_data, val_data = self.generate_data()
         train_labels = self.generate_labels(train_data)
         val_labels = self.generate_labels(val_data)
 
-        np.save('data/train_data.npy', train_data)
+        #np.save('data/train_data.npy', train_data)
         np.save('data/val_data.npy', val_data)
-        np.save('data/train_labels.npy', train_labels)
+        #np.save('data/train_labels.npy', train_labels)
         np.save('data/val_labels.npy', val_labels)
+
+    def generate_transformer_dataset(self):
+        os.system('rm -rf data/frame_prediction/*')
+        train_set, val_set = self.generate_data()
+
+        train_data = []
+        train_labels = []
+        val_data = []
+        val_labels = []
+
+        for batch in train_set:
+            batch = np.array(batch)
+            train_data.append(batch[:-1, :, :, :])
+            train_labels.append(batch[-1:, :, :, :])
+        for batch in val_set:
+            batch = np.array(batch)
+            val_data.append(batch[:-1, :, :, :])
+            val_labels.append(batch[-1:, :, :, :])
+
+        train_data = np.array(train_data)
+        train_labels = np.array(train_labels)
+        val_data = np.array(val_data)
+        val_labels = np.array(val_labels)
+
+        np.save('data/frame_prediction/train_data.npy', train_data)
+        np.save('data/frame_prediction/train_labels.npy', train_labels)
+        np.save('data/frame_prediction/val_data.npy', val_data)
+        np.save('data/frame_prediction/val_labels.npy', val_labels)
 

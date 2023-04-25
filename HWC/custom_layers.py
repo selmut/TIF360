@@ -1,4 +1,4 @@
-from keras.layers import Layer, Dense, Dropout, LayerNormalization
+from keras.layers import Layer, Dense, Dropout, LayerNormalization, Flatten
 import tensorflow as tf
 import numpy as np
 
@@ -75,6 +75,7 @@ class MultiAttention(Layer):
         x = self.linear(concat_attention)
         return x
 
+
 class Transformer(Layer):
     def __init__(self, dk, dv, embedding_len, dropout_rate, seq_len, n_heads):
         super(Transformer, self).__init__()
@@ -89,11 +90,12 @@ class Transformer(Layer):
         self.t2v = Time2Vector(self.seq_len)
         self.multi_attention = MultiAttention(self.n_heads, self.dk, self.dv, 6)
         self.dropout = Dropout(self.dropout_rate)
-        self.normalize = LayerNormalization(epsilon=1e-6)
-        self.dense1 = Dense(64, activation='relu')
-        self.dense2 = Dense(32, activation='relu')
+        self.normalize = LayerNormalization(epsilon=1e-3)
+        self.dense1 = Dense(32, activation='relu')
+        self.dense2 = Dense(16, activation='relu')
         self.dense3 = Dense(self.embedding_len, activation='relu')
         self.dense4 = Dense(input_shape[-1])
+        self.flatten = Flatten()
 
     def call(self, inputs):
         t2v = self.t2v(inputs)
@@ -106,14 +108,14 @@ class Transformer(Layer):
 
         x = self.normalize(x)
         x = self.dense1(x)
+        x = self.dropout(x)
         x = self.dense2(x)
         x = self.dense3(x)
 
         x = x + add
         x = self.normalize(x)
-
-        x = self.dropout(x)
+        #print(x.shape)
+        x = self.flatten(x)
         x = self.dense4(x)
-
         return x
 
