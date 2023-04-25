@@ -2,6 +2,7 @@ import deeptrack as dt
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+from keras.models import load_model, save_model
 
 
 # generates a sequence of 10 images
@@ -47,7 +48,7 @@ class DataGenerator:
         dataset = sequential_images >> dt.FlipUD() >> dt.FlipDiagonal() >> dt.FlipLR()
 
         train_data = [dataset.update()() for i in range(1000)]  # 1000 sequences, each a random sphere moving for 10 frames
-        val_data = [dataset.update()() for i in range(1000)]  # 100 sequences, each a random sphere moving for 10 frames
+        val_data = [dataset.update()() for i in range(100)]  # 100 sequences, each a random sphere moving for 10 frames
 
         return train_data, val_data
 
@@ -64,41 +65,53 @@ class DataGenerator:
         return labels
 
     def generate_dataset(self):
-        #os.system('rm -rf data/*')
+        os.system('rm -rf data/*')
         train_data, val_data = self.generate_data()
         train_labels = self.generate_labels(train_data)
         val_labels = self.generate_labels(val_data)
 
-        #np.save('data/train_data.npy', train_data)
+        np.save('data/train_data.npy', train_data)
         np.save('data/val_data.npy', val_data)
-        #np.save('data/train_labels.npy', train_labels)
+        np.save('data/train_labels.npy', train_labels)
         np.save('data/val_labels.npy', val_labels)
 
-    def generate_transformer_dataset(self):
-        os.system('rm -rf data/frame_prediction/*')
-        train_set, val_set = self.generate_data()
+    def generate_encoded_dataset(self):
+        os.system('rm -rf data/downsampled/*')
 
-        train_data = []
-        train_labels = []
-        val_data = []
-        val_labels = []
+        train_data = np.load('data/train_data.npy')
+        val_data = np.load('data/val_data.npy')
 
-        for batch in train_set:
-            batch = np.array(batch)
-            train_data.append(batch[:-1, :, :, :])
-            train_labels.append(batch[-1:, :, :, :])
-        for batch in val_set:
-            batch = np.array(batch)
-            val_data.append(batch[:-1, :, :, :])
-            val_labels.append(batch[-1:, :, :, :])
+        encoder = load_model('models/encoders/enc_train_mae0.0324_test_mae0.0331_bn5')
 
-        train_data = np.array(train_data)
-        train_labels = np.array(train_labels)
-        val_data = np.array(val_data)
-        val_labels = np.array(val_labels)
+        train_data_downsampled = []
+        train_labels_downsampled = []
+        val_data_downsampled = []
+        val_labels_downsampled = []
 
-        np.save('data/frame_prediction/train_data.npy', train_data)
-        np.save('data/frame_prediction/train_labels.npy', train_labels)
-        np.save('data/frame_prediction/val_data.npy', val_data)
-        np.save('data/frame_prediction/val_labels.npy', val_labels)
+        for idx, batch in enumerate(train_data):
+            batch_inputs = batch[:-1, :, :, :]
+            batch_labels = batch[-1, :, :, :]
+
+            pred = encoder.predict(batch_inputs, verbose=0)
+            pred = np.reshape(pred, (-1, *pred.shape))
+            label = np.reshape(batch_labels, (-1, *batch_labels.shape))
+
+            train_data_downsampled.append(pred)
+            train_labels_downsampled.append(label)
+
+        for idx, batch in enumerate(val_data):
+            batch_inputs = batch[:-1, :, :, :]
+            batch_labels = batch[-1, :, :, :]
+
+            pred = encoder.predict(batch_inputs, verbose=0)
+            pred = np.reshape(pred, (-1, *pred.shape))
+            label = np.reshape(batch_labels, (-1, *batch_labels.shape))
+
+            val_data_downsampled.append(pred)
+            val_labels_downsampled.append(label)
+
+        np.save('data/downsampled/train_data.npy', np.array(train_data_downsampled))
+        np.save('data/downsampled/train_labels.npy', np.array(train_labels_downsampled))
+        np.save('data/downsampled/val_data.npy', np.array(val_data_downsampled))
+        np.save('data/downsampled/val_labels.npy', np.array(val_labels_downsampled))
 

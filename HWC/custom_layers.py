@@ -88,11 +88,11 @@ class Transformer(Layer):
 
     def build(self, input_shape):
         self.t2v = Time2Vector(self.seq_len)
-        self.multi_attention = MultiAttention(self.n_heads, self.dk, self.dv, 6)
+        self.multi_attention = MultiAttention(self.n_heads, self.dk, self.dv, self.embedding_len)
         self.dropout = Dropout(self.dropout_rate)
         self.normalize = LayerNormalization(epsilon=1e-3)
-        self.dense1 = Dense(32, activation='relu')
-        self.dense2 = Dense(16, activation='relu')
+        self.dense1 = Dense(64, activation='relu')
+        self.dense2 = Dense(32, activation='relu')
         self.dense3 = Dense(self.embedding_len, activation='relu')
         self.dense4 = Dense(input_shape[-1])
         self.flatten = Flatten()
@@ -101,9 +101,9 @@ class Transformer(Layer):
         t2v = self.t2v(inputs)
         add = tf.concat([inputs, t2v], axis=-1)
         x = tf.concat([inputs, t2v], axis=-1)
-
         x = self.multi_attention(x)
         x = self.dropout(x)
+
         x = x + add
 
         x = self.normalize(x)
@@ -114,7 +114,6 @@ class Transformer(Layer):
 
         x = x + add
         x = self.normalize(x)
-        #print(x.shape)
         x = self.flatten(x)
         x = self.dense4(x)
         return x

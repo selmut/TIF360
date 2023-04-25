@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import gc
 import matplotlib.pyplot as plt
-from data_generator import DataGenerator
 from autoencoder import Autoencoder
 from keras.models import load_model
 
@@ -12,16 +11,14 @@ train_labels = np.load('data/train_labels.npy')
 val_data = np.load('data/val_data.npy')
 val_labels = np.load('data/val_labels.npy')
 
-nEpochs = 80
-bn_size = 4
+nEpochs = 50
+bn_size = 5
 
 print(train_data.shape)
 print(val_data.shape)
 ae = Autoencoder((64, 64, 1), bn_size)
-# h = ae.model.fit(train_data, train_data, epochs=50, shuffle=True, validation_data=(val_data, val_data))
-h = ae.model.fit(x=np.array(train_data), y=np.array(train_data), epochs=50)
 
-'''train_losses = np.zeros(nEpochs)
+train_losses = np.zeros(nEpochs)
 val_losses = np.zeros(nEpochs)
 
 for epoch in range(nEpochs):
@@ -47,7 +44,7 @@ for epoch in range(nEpochs):
     gc.collect()
 
 pd.DataFrame(train_losses).to_csv('csv/training_loss.csv')
-pd.DataFrame(val_losses).to_csv('csv/validation_loss.csv')'''
+pd.DataFrame(val_losses).to_csv('csv/validation_loss.csv')
 
 '''loaded_model = load_model('models/saved/mod_train_mae0.0640_test_mae0.0479_bn4')
 
