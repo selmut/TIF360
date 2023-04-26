@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 
 
 def plot_acc(filename):
@@ -14,6 +15,24 @@ def plot_acc(filename):
     plt.savefig(filename)
 
 
-plot_acc('img/accuracies.png')
+def plot_losses(filename):
+    train_acc = np.load('data/losses/losses.npy')
+    val_acc = np.load('data/losses/val_losses.npy')
+
+    plt.figure()
+    plt.plot(np.arange(0, 100), train_acc)
+    plt.plot(np.arange(0, 100), val_acc)
+
+    plt.legend(['Training', 'Validation'])
+    plt.savefig(filename)
 
 
+def plot_loss_maps(data, filename):
+    plt.figure()
+    plt.imshow(data)
+    plt.savefig(filename)
+
+
+plot_losses('img/transformer_losses.png')
+#plot_loss_maps(np.load('data/losses/losses.npy'), 'img/loss_map.png')
+#plot_loss_maps(np.load('data/losses/val_losses.npy'), 'img/loss_map.png')

@@ -48,7 +48,7 @@ class DataGenerator:
         dataset = sequential_images >> dt.FlipUD() >> dt.FlipDiagonal() >> dt.FlipLR()
 
         train_data = [dataset.update()() for i in range(1000)]  # 1000 sequences, each a random sphere moving for 10 frames
-        val_data = [dataset.update()() for i in range(100)]  # 100 sequences, each a random sphere moving for 10 frames
+        val_data = [dataset.update()() for i in range(1000)]  # 100 sequences, each a random sphere moving for 10 frames
 
         return train_data, val_data
 
@@ -65,7 +65,7 @@ class DataGenerator:
         return labels
 
     def generate_dataset(self):
-        os.system('rm -rf data/*')
+        #os.system('rm -rf data/*')
         train_data, val_data = self.generate_data()
         train_labels = self.generate_labels(train_data)
         val_labels = self.generate_labels(val_data)
@@ -76,12 +76,12 @@ class DataGenerator:
         np.save('data/val_labels.npy', val_labels)
 
     def generate_encoded_dataset(self):
-        os.system('rm -rf data/downsampled/*')
+        # os.system('rm -rf data/downsampled/*')
 
         train_data = np.load('data/train_data.npy')
         val_data = np.load('data/val_data.npy')
 
-        encoder = load_model('models/encoders/enc_train_mae0.0324_test_mae0.0331_bn5')
+        encoder = load_model('models/enc_bn4')
 
         train_data_downsampled = []
         train_labels_downsampled = []
@@ -89,6 +89,7 @@ class DataGenerator:
         val_labels_downsampled = []
 
         for idx, batch in enumerate(train_data):
+
             batch_inputs = batch[:-1, :, :, :]
             batch_labels = batch[-1, :, :, :]
 
@@ -115,3 +116,6 @@ class DataGenerator:
         np.save('data/downsampled/val_data.npy', np.array(val_data_downsampled))
         np.save('data/downsampled/val_labels.npy', np.array(val_labels_downsampled))
 
+
+gen = DataGenerator()
+gen.generate_encoded_dataset()

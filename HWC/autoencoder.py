@@ -1,7 +1,7 @@
 from keras.layers import Conv2D, MaxPool2D, Dense, Flatten, ReLU, UpSampling2D, Reshape, Input, Dropout
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
-from keras.losses import MeanAbsoluteError
+from keras.losses import MeanAbsoluteError, MeanSquaredError
 
 
 class Autoencoder:
@@ -17,10 +17,10 @@ class Autoencoder:
         self.model = Model(inputs=self.input, outputs=self.decoder(self.encoder(self.input)))
 
         self.optimizer = Adam(learning_rate=self.lr)
-        self.model.compile(optimizer=self.optimizer, loss='mae')
-        self.encoder.compile(optimizer=self.optimizer, loss='mae')
-        self.decoder.compile(optimizer=self.optimizer, loss='mae')
-        self.loss = MeanAbsoluteError()
+        self.model.compile(optimizer=self.optimizer, loss='mse')
+        self.encoder.compile(optimizer=self.optimizer, loss='mse')
+        self.decoder.compile(optimizer=self.optimizer, loss='mse')
+        self.loss = MeanSquaredError()
 
     def create_encoder(self):
         encoder = Sequential()
@@ -48,20 +48,4 @@ class Autoencoder:
         decoder.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
         decoder.add(Conv2D(1, (3, 3), padding='same'))
         return decoder
-
-    def create_model(self):
-        model = Sequential()
-        model.add(Conv2D(8, (3, 3), activation='relu', padding='same', input_shape=self.input_shape))
-        model.add(MaxPool2D(pool_size=(2, 2)))
-        model.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
-        model.add(MaxPool2D(pool_size=(2, 2)))
-        model.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
-        model.add(Flatten())
-        model.add(Dense(32, activation='relu'))
-        model.add(Dense(32, activation='relu'))
-        model.add(Dense(2))
-
-        optimizer = Adam(learning_rate=self.lr)
-        model.compile(optimizer=optimizer, loss='mae')
-        return model
 
