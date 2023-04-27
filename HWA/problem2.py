@@ -49,7 +49,7 @@ test_accs = np.zeros(epochs)
 
 # train gcn
 print('\nTraining GCN...')
-for epoch in range(1, epochs):
+for epoch in range(0, epochs):
     gnn.fn_train(train_loader)
     train_acc = gnn.fn_test(train_loader)
     test_acc = gnn.fn_test(test_loader)
@@ -60,7 +60,7 @@ for epoch in range(1, epochs):
     if test_acc >= 0.98 and epoch > 10:
         torch.save(gnn.model, f'models/test/test_acc{test_acc}_train_acc{train_acc}.pt')
 
-    print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
+    print(f'Epoch: {epoch+1:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
 
 
 pd.DataFrame(train_accs).to_csv('csv/train_accuracies.csv')

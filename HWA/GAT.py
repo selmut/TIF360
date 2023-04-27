@@ -41,7 +41,6 @@ class GNN:
 
         for data in train_loader:  # Iterate in batches over the training dataset.
             out = self.model(data.x, data.edge_index, data.batch, data.edge_attr)  # Perform a single forward pass.
-            # loss = self.criterion(torch.round(out), data.y)  # Compute the loss.
             loss = self.criterion(out, data.y[:, 0:1])  # Compute the loss.
             loss.backward()  # Derive gradients.
             self.optimizer.step()  # Update parameters based on gradients.

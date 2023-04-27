@@ -6,7 +6,7 @@ import torch.nn.functional as F
 class MLPNet(torch.nn.Module):
     def __init__(self, hidden_channels, dataset):
         super().__init__()
-        torch.manual_seed(12345)
+        #torch.manual_seed(12345)
         self.lin1 = Linear(dataset.num_features, hidden_channels)
         self.lin2 = Linear(hidden_channels, dataset.num_classes)
 

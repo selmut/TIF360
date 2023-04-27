@@ -25,11 +25,8 @@ class Network:
 
         self.optimizer = Adam(learning_rate=self.lr)
 
-        self.model.compile(optimizer=self.optimizer, loss='mse')
-        self.loss = MeanSquaredError()
-
-        '''self.model.compile(optimizer=self.optimizer, loss='categorical_crossentropy')
-        self.loss = CategoricalCrossentropy()'''
+        self.model.compile(optimizer=self.optimizer, loss='categorical_crossentropy')
+        self.loss = CategoricalCrossentropy()
 
     def build_model(self):
         # self.encoder.trainable = False

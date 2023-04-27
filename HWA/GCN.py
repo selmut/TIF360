@@ -6,7 +6,7 @@ import torch
 class GCNNet(torch.nn.Module):
     def __init__(self, hidden_channels, dataset):
         super().__init__()
-        torch.manual_seed(1234567)
+        #torch.manual_seed(1234567)
         self.conv1 = GCNConv(dataset.num_features, hidden_channels)
         self.conv2 = GCNConv(hidden_channels, dataset.num_classes)
 
