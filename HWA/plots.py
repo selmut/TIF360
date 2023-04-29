@@ -23,6 +23,8 @@ def plot_acc(filename):
     plt.plot(test_acc[0], test_acc[1])
 
     plt.legend(['Training', 'Testing'])
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
     plt.savefig(filename)
 
 
