@@ -153,7 +153,7 @@ class TQAgent:
             self.fn_reinforce(old_state_idx, reward)
 
 
-class Network(nn.Module):
+class QNetwork(nn.Module):
     def __init__(self, output_size):
         super().__init__()
         self.flatten = nn.Flatten()
@@ -202,24 +202,23 @@ class TDQNAgent:
 
         self.tile_identifiers = self.fn_get_tile_identifiers()
 
-        self.Na = 16  # 9*self.gameboard.N_col    # nr. of actions
+        self.Na = 4*self.gameboard.N_col  # 4 rotations, N_col placement possibilities
 
         self.current_qvals = np.zeros(self.Na)
         self.current_tile = self.gameboard.cur_tile_type
         self.current_board = self.gameboard.board
         self.current_state = -1*np.ones((self.gameboard.N_row+1, self.gameboard.N_col))
 
-        # Using pytorch
-        self.model = Network(self.Na).float()
+        self.model = QNetwork(self.Na).float()
         self.target_model = deepcopy(self.model)
 
-        self.loss_fct = nn.MSELoss()
+        self.criterion = nn.MSELoss()
         self.model_optimizer = optim.Adam(self.model.parameters(), lr=self.alpha, amsgrad=True)
 
         self.exp_buffer = deque(maxlen=self.replay_buffer_size)
 
     def fn_load_strategy(self, strategy_file):
-        pass
+        self.model.load_state_dict(torch.load(strategy_file))
 
     def fn_get_tile_identifiers(self):
         tile_types = list(range(4))
@@ -299,7 +298,7 @@ class TDQNAgent:
         y = np.array(y)
 
         self.model.train()
-        self.loss = self.loss_fct(self.model(torch.from_numpy(X)), torch.from_numpy(y))
+        self.loss = self.criterion(self.model(torch.from_numpy(X)), torch.from_numpy(y))
 
         self.loss.backward()
         self.model_optimizer.step()
@@ -309,14 +308,14 @@ class TDQNAgent:
         if self.gameboard.gameover:
             self.episode += 1
             if self.episode % 100 == 0:
-                print('episode '+str(self.episode)+'/'+str(self.episode_count)+' (reward: ', str(np.sum(
-                    self.reward_tots[range(self.episode-100, self.episode)])), ')', f', epsilon_E: {self.epsilonE:.3f}')
-            if self.episode % 10 == 0:
-                saveEpisodes = np.arange(self.episode_count+1, step=1)
-                # saveEpisodes = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000]
+                print(f'episode {self.episode}/{self.episode_count} '
+                      f'(reward: {np.sum(self.reward_tots[range(self.episode-100, self.episode)])}), '
+                      f'epsilon_E: {self.epsilonE:.3f}')
+            if self.episode % 1000 == 0:
+                saveEpisodes = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000]
                 if self.episode in saveEpisodes:
-                    # Here you can save the rewards and the Q-network to data files
-                    # self.model.save(f'data/qnets/qmodel__{self.episode}.model')
+                    torch.save(self.model.state_dict(), f'qnets/model_{self.episode}.pth')
+                    torch.save(self.target_model.state_dict(), f'qnets/target_{self.episode}.pth')
                     with open('data/rewards/r.csv', 'a') as f:
                         f.write(f'{self.episode},{self.reward_tots[self.episode-1]}\n')
 
