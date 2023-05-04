@@ -1,21 +1,14 @@
-import random
-
 import numpy as np
-import os
-import h5py
-from itertools import *
-from collections import deque
-
+import random
 import torch
-from keras.models import Sequential
-from keras.layers import Conv2D, MaxPool2D, Activation, Dropout, Input, Flatten, Dense
-from keras.optimizers import Adam
-import tensorflow as tf
-from keras import backend as K
-import gc
+from collections import deque
+from itertools import product
+import h5py
+import os
 from torch import nn
 from torch import optim
 from copy import deepcopy
+
 
 class TQAgent:
     # Agent for learning to play tetris using Q-learning
@@ -163,22 +156,12 @@ class TQAgent:
 class Network(nn.Module):
     def __init__(self, output_size):
         super().__init__()
-
         self.flatten = nn.Flatten()
         self.linear1 = nn.Linear(20, 64)
         self.linear2 = nn.Linear(64, 64)
         self.linear3 = nn.Linear(64, output_size)
 
         self.relu = nn.ReLU()
-
-        '''self.layers = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(20, 64),
-            nn.ReLU(),
-            nn.Linear(64, 64),
-            nn.ReLU(),
-            nn.Linear(64, output_size),
-        )'''
 
     def forward(self, x):
         x = x.float()
@@ -216,10 +199,10 @@ class TDQNAgent:
 
         self.gameboard = gameboard
         self.reward_tots = np.zeros(self.episode_count)
-        self.tile_identifiers = self.fn_get_tile_identifiers()
-        self.idx_to_action = self.idx_to_action()
 
-        self.Na = 9*self.gameboard.N_col    # nr. of actions
+        self.tile_identifiers = self.fn_get_tile_identifiers()
+
+        self.Na = 16  # 9*self.gameboard.N_col    # nr. of actions
 
         self.current_qvals = np.zeros(self.Na)
         self.current_tile = self.gameboard.cur_tile_type
@@ -237,8 +220,6 @@ class TDQNAgent:
 
     def fn_load_strategy(self, strategy_file):
         pass
-        # TODO
-        # Here you can load the Q-network (to Q-network of self) from the strategy_file
 
     def fn_get_tile_identifiers(self):
         tile_types = list(range(4))
@@ -249,19 +230,6 @@ class TDQNAgent:
             out[tile_types[n]] = tile_identifier
         out[-1] = -1*np.ones(self.gameboard.N_col)
         return out
-
-    def idx_to_action(self):
-        tiles = self.gameboard.tiles
-
-        action_map = {}
-        idx = 0
-        for i in range(len(tiles)):
-            tmp = tiles[i]
-            for j in range(len(tmp)):
-                for k in range(self.gameboard.N_col):
-                    action_map[idx] = (i, j, k)
-                    idx += 1
-        return action_map
 
     def fn_read_state(self):
         self.current_board = self.gameboard.board
@@ -281,77 +249,74 @@ class TDQNAgent:
     def get_qvals(self, state):
         self.model.eval()
         return self.model(torch.from_numpy(state.reshape(-1, *state.shape))).detach().numpy()
-    # return self.model.predict(state, verbose=0)[0]  # using tensorflow
 
     def fn_decay_epsilon(self):
         self.epsilonE = np.maximum(self.epsilon, 1-self.episode/self.epsilon_scale)
 
     def fn_select_action(self):
-        action_valid = False
-        while not action_valid:
-            rand = np.random.random()
-            self.current_qvals = self.get_qvals(self.current_state)
+        rand = np.random.random()
+        self.current_qvals = self.get_qvals(self.current_state)
+        sorted_qvals_idx = np.argsort(self.current_qvals)
 
-            if rand < self.epsilonE:
-                self.action_idx = np.random.randint(0, self.Na)
-            else:
-                max_q = np.max(self.current_qvals)
-                self.action_idx = np.random.choice(np.where(self.current_qvals == max_q)[1])
+        if rand < self.epsilonE:
+            self.action_idx = np.random.randint(0, self.Na)
+        else:
+            self.action_idx = sorted_qvals_idx[0, -1]
 
-            self.action = self.idx_to_action.get(self.action_idx)
-            action_valid = self.gameboard.fn_move(self.action[2], self.action[1]) == 0
+        col = self.action_idx // 4
+        rot = self.action_idx % 4
+
+        self.gameboard.fn_move(col, rot)
 
     def fn_reinforce(self, batch):
         self.model.eval()
         self.target_model.eval()
-        current_states = np.array([transition[0] for transition in batch])
-        current_qvals_arr = self.model(torch.from_numpy(current_states)).detach().numpy()
-        # current_qvals_arr = self.model.predict(current_states, verbose=0)  # using tf
 
-        new_current_states = np.array([transition[3] for transition in batch])
-        future_qvals_arr = self.target_model(torch.from_numpy(new_current_states)).detach().numpy()
-        # future_qvals_arr = self.target_model.predict(new_current_states, verbose=0)  # using tf
+        first_states = np.array([transition[0] for transition in batch])
+        first_qvals_batch = self.model(torch.from_numpy(first_states)).detach().numpy()
+
+        second_states = np.array([transition[3] for transition in batch])
+        second_qvals_batch = self.target_model(torch.from_numpy(second_states)).detach().numpy()
 
         X = []
         y = []
 
-        for i, (current_state, action_idx, reward, new_current_state, done) in enumerate(batch):
+        for i, (first_state, action_idx, reward, second_state, done) in enumerate(batch):
             if not done:
-                max_future_q = np.max(future_qvals_arr[i])
-                new_q = reward + max_future_q
+                max_second_qval = np.max(second_qvals_batch[i, :])
+                new_qval = reward + max_second_qval
             else:
-                new_q = reward
+                new_qval = reward
 
-            current_qvals = current_qvals_arr[i]
-            current_qvals[action_idx] = new_q
+            first_qvals_transition = np.copy(first_qvals_batch[i])
+            first_qvals_transition[action_idx] = new_qval
 
-            X.append(current_state)
-            y.append(current_qvals)
+            X.append(first_state)
+            y.append(first_qvals_transition)
 
         # using torch
         X = np.array(X)
         y = np.array(y)
 
         self.model.train()
-        self.model_optimizer.zero_grad()
         self.loss = self.loss_fct(self.model(torch.from_numpy(X)), torch.from_numpy(y))
+
         self.loss.backward()
         self.model_optimizer.step()
-
-        # self.model.fit(np.array(X), np.array(y), batch_size=self.batch_size, verbose=0)  # using tf
+        self.model_optimizer.zero_grad()
 
     def fn_turn(self):
         if self.gameboard.gameover:
             self.episode += 1
             if self.episode % 100 == 0:
                 print('episode '+str(self.episode)+'/'+str(self.episode_count)+' (reward: ', str(np.sum(
-                    self.reward_tots[range(self.episode-100, self.episode)])), ')', f', epsilon_E: {self.epsilonE}')
+                    self.reward_tots[range(self.episode-100, self.episode)])), ')', f', epsilon_E: {self.epsilonE:.3f}')
             if self.episode % 10 == 0:
                 saveEpisodes = np.arange(self.episode_count+1, step=1)
                 # saveEpisodes = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000]
                 if self.episode in saveEpisodes:
                     # Here you can save the rewards and the Q-network to data files
-                    # self.model.save(f'data/qnetworks/qmodel__{self.episode}.model')
+                    # self.model.save(f'data/qnets/qmodel__{self.episode}.model')
                     with open('data/rewards/r.csv', 'a') as f:
                         f.write(f'{self.episode},{self.reward_tots[self.episode-1]}\n')
 
@@ -370,35 +335,29 @@ class TDQNAgent:
 
             # Here you should write line(s) to copy the old state into the variable 'old_state' which is later stored
             # in the experience replay buffer
+            self.current_state = self.current_state.flatten()
+
             old_state = np.copy(self.current_state)
 
             # Drop the tile on the game board
-            reward = self.gameboard.fn_drop()
+            reward = np.copy(self.gameboard.fn_drop())
             self.reward_tots[self.episode] += reward
 
             # Read the new state
             self.fn_read_state()
 
             # Here you should write line(s) to store the state in the experience replay buffer
-            transition = (old_state, self.action_idx, reward, self.current_state, self.gameboard.gameover)
+            transition = (old_state, np.copy(self.action_idx), reward, np.copy(self.current_state), np.copy(self.gameboard.gameover))
             self.fn_update_buffer(transition)
-
-            self.fn_decay_epsilon()
 
             if len(self.exp_buffer) >= self.replay_buffer_size:
                 # Here you should write line(s) to create a variable 'batch' containing 'self.batch_size' quadruplets
                 batch = random.sample(self.exp_buffer, self.batch_size)
                 self.fn_reinforce(batch)
-                # K.clear_session()  # using tf
-                gc.collect()
+                self.fn_decay_epsilon()
 
 
 class THumanAgent:
-    def __init__(self):
-        self.episode = None
-        self.reward_tots = None
-        self.gameboard = None
-
     def fn_init(self, gameboard):
         self.episode = 0
         self.reward_tots = [0]
@@ -418,11 +377,11 @@ class THumanAgent:
                     self.gameboard.fn_restart()
                 if not self.gameboard.gameover:
                     if event.key == pygame.K_UP:
-                        self.gameboard.fn_move(self.gameboard.tile_x, (self.gameboard.tile_orientation+1) %
-                                               len(self.gameboard.tiles[self.gameboard.cur_tile_type]))
+                        self.gameboard.fn_move(self.gameboard.tile_x, (self.gameboard.tile_orientation + 1) % len(
+                            self.gameboard.tiles[self.gameboard.cur_tile_type]))
                     if event.key == pygame.K_LEFT:
-                        self.gameboard.fn_move(self.gameboard.tile_x-1, self.gameboard.tile_orientation)
+                        self.gameboard.fn_move(self.gameboard.tile_x - 1, self.gameboard.tile_orientation)
                     if event.key == pygame.K_RIGHT:
-                        self.gameboard.fn_move(self.gameboard.tile_x+1, self.gameboard.tile_orientation)
+                        self.gameboard.fn_move(self.gameboard.tile_x + 1, self.gameboard.tile_orientation)
                     if (event.key == pygame.K_DOWN) or (event.key == pygame.K_SPACE):
                         self.reward_tots[self.episode] += self.gameboard.fn_drop()
