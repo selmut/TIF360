@@ -293,7 +293,7 @@ class TDQNAgent:
             X.append(first_state)
             y.append(first_qvals_transition)
 
-        # using torch
+
         X = np.array(X)
         y = np.array(y)
 
@@ -325,32 +325,24 @@ class TDQNAgent:
                 if (len(self.exp_buffer) >= self.replay_buffer_size) and \
                         ((self.episode % self.sync_target_episode_count) == 0):
                     self.target_model = deepcopy(self.model)
-                    # Here you should write line(s) to copy the current network to the target network
-                    # self.target_model.set_weights(self.model.get_weights())  # using tf
+
                 self.gameboard.fn_restart()
         else:
-            # Select and execute action (move the tile to the desired column and orientation)
             self.fn_select_action()
 
-            # Here you should write line(s) to copy the old state into the variable 'old_state' which is later stored
-            # in the experience replay buffer
             self.current_state = self.current_state.flatten()
 
             old_state = np.copy(self.current_state)
 
-            # Drop the tile on the game board
             reward = np.copy(self.gameboard.fn_drop())
             self.reward_tots[self.episode] += reward
 
-            # Read the new state
             self.fn_read_state()
 
-            # Here you should write line(s) to store the state in the experience replay buffer
             transition = (old_state, np.copy(self.action_idx), reward, np.copy(self.current_state), np.copy(self.gameboard.gameover))
             self.fn_update_buffer(transition)
 
             if len(self.exp_buffer) >= self.replay_buffer_size:
-                # Here you should write line(s) to create a variable 'batch' containing 'self.batch_size' quadruplets
                 batch = random.sample(self.exp_buffer, self.batch_size)
                 self.fn_reinforce(batch)
                 self.fn_decay_epsilon()
