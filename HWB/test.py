@@ -1,12 +1,11 @@
-import numpy as np
-# from keras.layers import Concatenate
-from itertools import *
 import torch
-from torch.nn import Flatten
 
+x = torch.randn(3, 4)
+print(x)
 
-mat1 = np.array([[1, 2, 3],
-                [4, 5, 6],
-                [7, 8, 9]])
+indices = torch.tensor([0, 1, 2])
+print(indices)
 
-print(mat1.flatten())
+new = torch.index_select(x, 0, indices)
+print(new)
+

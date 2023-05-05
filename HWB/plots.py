@@ -5,15 +5,17 @@ PLOT_PATH = 'data/plots/'
 REWARDS_PATH = 'data/rewards/'
 
 
-def plot_rewards(filename):
+def plot_avg(filename):
+    r = pd.read_csv(REWARDS_PATH + 'r.csv', header=None, index_col=None).to_numpy().T
+    r_avg = pd.read_csv(REWARDS_PATH + 'r_avg.csv', header=None, index_col=None).to_numpy().T
+
     plt.figure()
-    r_data = pd.read_csv(REWARDS_PATH+'r.csv').to_numpy().T
-    plt.plot(r_data[0, :], r_data[1, :])
-    plt.ylabel('Reward')
+    plt.plot(r[0], r[1])
+    plt.plot(r_avg[0], r_avg[1])
     plt.xlabel('Episode')
-    plt.ticklabel_format(axis='both', style='sci', scilimits=[-1, 2])
-    # plt.show()
+    plt.ylabel('Reward')
     plt.savefig(PLOT_PATH+filename)
 
 
-plot_rewards('2a.png')
+plot_avg('2b.png')
+

@@ -42,7 +42,7 @@ label_X = label[:, 0]
 label_Z = label[:, 1]
 
 gnn = GNN(4, 2)
-epochs = 100
+epochs = 10
 
 train_accs = np.zeros(epochs)
 test_accs = np.zeros(epochs)
@@ -57,8 +57,8 @@ for epoch in range(0, epochs):
     train_accs[epoch] = train_acc
     test_accs[epoch] = test_acc
 
-    if test_acc >= 0.98 and epoch > 10:
-        torch.save(gnn.model, f'models/test/test_acc{test_acc}_train_acc{train_acc}.pt')
+    if test_acc >= 0.9:
+        torch.save(gnn.model, f'models/test_acc{test_acc:.4f}_train_acc{train_acc:.4f}.pt')
 
     print(f'Epoch: {epoch+1:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
 

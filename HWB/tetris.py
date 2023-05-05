@@ -1,5 +1,6 @@
 # import numpy as np
 import pygame
+import datetime
 # import h5py
 import gameboardClass
 import agentClass
@@ -16,11 +17,11 @@ human_player = 0
 # human_player = 1
 
 # Choose parameter sets for different tasks
-# param_set = PARAM_TASK1a
+param_set = PARAM_TASK1a
 # param_set = PARAM_TASK1b
 # param_set = PARAM_TASK1c
 # param_set = PARAM_TASK1d
-param_set = PARAM_TASK2a
+# param_set = PARAM_TASK2a
 # param_set = PARAM_TASK2b
 
 # Use files to evaluate strategy
@@ -32,6 +33,8 @@ if param_set == PARAM_TASK1a:
 elif param_set == PARAM_TASK1b:
     strategy_file = ''
 elif param_set == PARAM_TASK1c:
+    strategy_file = ''
+elif param_set == PARAM_TASK1d:
     strategy_file = ''
 elif param_set == PARAM_TASK2a:
     strategy_file = ''
@@ -105,6 +108,7 @@ elif param_set == PARAM_TASK1c:
 
     if (not human_player) or evaluate_agent:
         agent = agentClass.TQAgent(alpha, epsilon, episode_count)
+
 elif param_set == PARAM_TASK1d:
     N_row = 8
     N_col = 8
@@ -146,7 +150,7 @@ elif param_set == PARAM_TASK2b:
 
     alpha = 0.001
     epsilon = 0.001
-    episode_count = 10000
+    episode_count = 100000
 
     epsilon_scale = 50000
 
@@ -155,7 +159,7 @@ elif param_set == PARAM_TASK2b:
     sync_target_episode_count = 100
 
     if (not human_player) or evaluate_agent:
-        agent = agentClass.TDQNAgent(alpha, epsilon, epsilon_scale, replay_buffer_size, batch_size,
+        agent = agentClass.TDConvQNAgent(alpha, epsilon, epsilon_scale, replay_buffer_size, batch_size,
                                      sync_target_episode_count, episode_count)
 else:
     print('Erroneous param_set. Terminating...')
