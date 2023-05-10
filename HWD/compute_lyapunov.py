@@ -1,5 +1,5 @@
 import numpy as np
-from DataGeneratorClass import DataGenerator
+from ClassDataGenerator import DataGenerator
 
 dt = 0.001
 

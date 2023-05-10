@@ -32,8 +32,8 @@ def plot_one_coord(predictions, validations, coord, lambda_max=0.93652738, dt=0.
 def plot_prediction_error(predictions, validations, lambda_max=0.93652738, dt=0.02):
     plt.figure()
 
-    error_all = np.square(predictions[0, 1] - validations[0, 1])
-    error_single = np.square(predictions[1, 1] - validations[1, 1])
+    error_all = np.cumsum(np.abs(predictions[0, 1] - validations[0, 1]))
+    error_single = np.cumsum(np.abs(predictions[1, 1] - validations[1, 1]))
 
     plt.plot(np.arange(0, len(predictions[0, 0])) * dt * lambda_max, error_all)
     plt.plot(np.arange(0, len(predictions[0, 0])) * dt * lambda_max, error_single)
@@ -44,7 +44,7 @@ def plot_prediction_error(predictions, validations, lambda_max=0.93652738, dt=0.
     plt.plot(np.ones(30)*lambda_max, np.linspace(min_val, max_val, num=30), 'k--')
 
     plt.xlabel(r'$\lambda_1t$')
-    plt.ylabel(r'MSE in $x_2$-axis')
+    plt.ylabel(r'Cumulative error in $x_2$-axis')
     plt.axis([0, len(predictions[0, 0])*dt, min_val, max_val])
     plt.legend(['Full information', 'Partial information'])
     plt.savefig('img/error_plots/pred_error.png')

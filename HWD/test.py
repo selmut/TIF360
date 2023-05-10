@@ -1,10 +1,16 @@
 import pandas as pd
 import numpy as np
-from ReservoirComputerClass import ReservoirComputer
+from ClassReservoirComputer import ReservoirComputer
 
+variances = np.linspace(0.04, 0.07, num=100)
 
-train_data_all = pd.read_csv('csv/training-set.csv', header=None).to_numpy()
-test_data_all = pd.read_csv('csv/test-set.csv', header=None).to_numpy()
+singulars = np.zeros(100)
+for i, var in enumerate(variances):
+    normal = np.random.normal(0, var, size=(500, 500))
+    u, s, vh = np.linalg.svd(normal)
 
-res = ReservoirComputer(train_data_all, test_data_all, [3, 500, 3], 0.1, 10)
-loss = res.run()
+    singulars[i] = s[0]
+
+print(singulars)
+# the interval of ok variances corresponds approximately to singular values (1.79, 3.11)
+
