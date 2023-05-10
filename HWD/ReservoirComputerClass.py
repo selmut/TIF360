@@ -5,16 +5,19 @@ import plots
 
 
 class ReservoirComputer:
-    def __init__(self, train_data, test_data, reservoir_dimensions, ridge_param, max_sing):
+    def __init__(self, train_data, test_data, reservoir_dimensions, ridge_param, in_var, res_var):
         self.in_channels = reservoir_dimensions[0]
         self.reservoir_dim = reservoir_dimensions[1]
         self.out_channels = reservoir_dimensions[2]
         self.num_pred = 500
         self.ridge_param = ridge_param
-        self.max_sing = max_sing
+        # self.max_sing = max_sing
 
-        self.input_weights = np.random.uniform(-0.1, 0.1, size=(self.reservoir_dim, self.in_channels))
-        self.reservoir_weights = np.random.uniform(-1, 1, size=(self.reservoir_dim, self.reservoir_dim)) / self.max_sing
+        self.input_weights = np.random.normal(0, in_var, size=(self.reservoir_dim, self.in_channels))
+        self.reservoir_weights = np.random.normal(0, res_var, size=(self.reservoir_dim, self.reservoir_dim))
+
+        '''self.input_weights = np.random.uniform(-0.1, 0.1, size=(self.reservoir_dim, self.in_channels))
+        self.reservoir_weights = np.random.uniform(-1, 1, size=(self.reservoir_dim, self.reservoir_dim)) / self.max_sing'''
         self.output_weights = np.random.uniform(-0.1, 0.1, size=(self.reservoir_dim, self.in_channels))  # to be overwritten
 
         self.train_data = train_data
@@ -33,8 +36,15 @@ class ReservoirComputer:
         prod2 = self.ridge_param/2*np.trace(np.dot(np.transpose(self.output_weights), self.output_weights))
         return prod1+prod2'''
 
-    def loss(self, prediction, validation):
-        return 0.5*np.sum(np.square(prediction-validation))
+    def loss(self, prediction, validation, tol=10, lambda_max=0.93652738, dt=0.02):
+        diff = np.abs(prediction[1]-validation[1])
+
+        for i, d in enumerate(diff):
+            div_idx = i
+            if d > tol:
+                div_idx = i
+                break
+        return div_idx*lambda_max*dt
 
     def compute_output(self, previous_state):
         return np.dot(self.output_weights, previous_state)
@@ -105,6 +115,6 @@ class ReservoirComputer:
             plots.plot_predicted_attractor(predictions, self.max_sing)
             plots.plot_one_coord(predictions[1], validations[1], coord=2)
         except:
-            plots.plot_one_coord(predictions, validations, coord=2)
+            plots.plot_one_coord(predictions[1], validations[1], coord=2)
 
-        return loss
+        return loss, predictions, validations

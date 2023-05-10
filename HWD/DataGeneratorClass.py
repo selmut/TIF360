@@ -83,5 +83,5 @@ class DataGenerator:
             plt.close()
 
 
-'''gen = DataGenerator(10, 28, 8/3, [1, 1, 1], 0.02, 10_000, 500)
-gen.plot_save_series()'''
+gen = DataGenerator(10, 28, 8/3, [1, 1, 1], 0.02, 10_000, 500)
+gen.plot_save_series()
