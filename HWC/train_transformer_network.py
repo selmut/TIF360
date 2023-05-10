@@ -20,13 +20,13 @@ decoder = load_model('models/dec_bn4')
 encoder.trainable = False
 decoder.trainable = False
 
-dv, dk = 6, 6
-net = Network((1, 9, bn_size), decoder, bn_size, 9, dv, dk)
+dv, dk = 256, 256
+'''net = Network((1, 9, bn_size), decoder, bn_size, 9, dv, dk)
 
 train_labels = np.reshape(train_labels, (-1, 64, 64, 1))
 val_labels = np.reshape(val_labels, (-1, 64, 64, 1))
 
-'''h = net.model.fit(train_data, train_labels, epochs=10, shuffle=True, validation_data=(val_data, val_labels))
+h = net.model.fit(train_data, train_labels, epochs=10, shuffle=True, validation_data=(val_data, val_labels))
 
 net.model.save(f'models/transformer_nets/model_dk{dk}_dv{dv}_bn{bn_size}')
 
@@ -37,7 +37,7 @@ np.save('data/losses/losses.npy', losses)
 np.save('data/losses/val_losses.npy', val_losses)'''
 
 loaded_model = load_model(f'models/transformer_nets/model_dk{dk}_dv{dv}_bn{bn_size}')
-'''n_preds = 20
+n_preds = 20
 rand = np.random.randint(0, len(val_data))
 
 tmp = np.copy(val_data)
@@ -57,7 +57,7 @@ for n in range(n_preds):
     plt.figure()
     plt.imshow(new_images[rand])
     plt.savefig(f'img/predicted_frames/prediction{n}.png')
-    plt.close()'''
+    plt.close()
 
 images = loaded_model.predict(val_data, verbose=0)
 

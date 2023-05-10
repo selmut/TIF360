@@ -18,15 +18,15 @@ class Network:
         self.input = Input(self.input_shape)
         self.decoder = decoder
 
-        self.transformer1 = Transformer(self.dk, self.dv, self.bn+2, 0.2, self.seq_len, 16)
-        self.transformer2 = Transformer(self.dk, self.dv, self.bn+2, 0.2, 1, 16)
+        self.transformer1 = Transformer(self.dk, self.dv, self.bn+2, 0.2, self.seq_len, 12)
+        self.transformer2 = Transformer(self.dk, self.dv, self.bn+2, 0.2, 1, 12)
 
         self.model = self.build_model()
 
         self.optimizer = Adam(learning_rate=self.lr)
 
-        self.model.compile(optimizer=self.optimizer, loss='categorical_crossentropy')
-        self.loss = CategoricalCrossentropy()
+        self.model.compile(optimizer=self.optimizer, loss='mse')
+        self.loss = MeanSquaredError()
 
     def build_model(self):
         # self.encoder.trainable = False

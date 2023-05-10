@@ -15,6 +15,7 @@ print('Generating test/train splits...')
 num_samples = len(dataset)
 train_data = dataset[int(.05 * num_samples):]  # 95% train
 test_data = dataset[: int(.05 * num_samples)]  # 5% test
+
 train_loader = DataLoader(train_data, batch_size=1000, shuffle=True)
 test_loader = DataLoader(test_data, batch_size=1000, shuffle=True)
 
