@@ -4,7 +4,6 @@ import numpy as np
 import plots
 from ClassReservoirComputer import ReservoirComputer
 
-# TODO: fix loop to run for many realisations
 train_data_all = pd.read_csv('csv/training-set.csv', header=None).to_numpy()
 test_data_all = pd.read_csv('csv/test-set.csv', header=None).to_numpy()
 
