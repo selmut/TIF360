@@ -14,7 +14,7 @@ train_data_x2[1, :] = train_data_all[1, :]
 test_data_x2[1, :] = test_data_all[1, :]
 
 in_var = 0.02
-res_vars = np.linspace(1e-2, 1e2, num=50)/1000
+res_vars = np.linspace(1e-2, 1e2, num=50)/500
 
 n_reals = 10
 losses = np.zeros((2, n_reals, len(res_vars)))
@@ -24,8 +24,8 @@ for n in range(n_reals):
     print(f'\nRealisation nr. {n + 1}/{n_reals}...\n')
     for i, res_var in enumerate(res_vars):
         print(f'Current input variance value: {in_var:.06f}, current reservoir variance: {res_var:.06f}')
-        res1 = ReservoirComputer(train_data_all, test_data_all, [3, 1000, 3], 0.1, in_var, res_var)
-        res2 = ReservoirComputer(train_data_x2, test_data_x2, [3, 1000, 3], 0.1, in_var, res_var)
+        res1 = ReservoirComputer(train_data_all, test_data_all, [3, 500, 3], 0.1, in_var, res_var)
+        res2 = ReservoirComputer(train_data_x2, test_data_x2, [3, 500, 3], 0.1, in_var, res_var)
 
         loss1, pred1, val1 = res1.run()
         loss2, pred2, val2 = res2.run()

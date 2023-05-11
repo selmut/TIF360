@@ -35,8 +35,11 @@ def plot_prediction_error(predictions, validations, lambda_max=0.93652738, dt=0.
     error_all = np.cumsum(np.abs(predictions[0, 1] - validations[0, 1]))
     error_single = np.cumsum(np.abs(predictions[1, 1] - validations[1, 1]))
 
-    plt.plot(np.arange(0, len(predictions[0, 0])) * dt * lambda_max, error_all)
-    plt.plot(np.arange(0, len(predictions[0, 0])) * dt * lambda_max, error_single)
+    error_all = 1/2*(np.cumsum(np.square(predictions[0] - validations[0]), axis=0))
+    error_single = 1/2 * (np.cumsum(np.square(predictions[1] - validations[1]), axis=0))
+
+    plt.plot(np.arange(0, 500) * dt * lambda_max, error_all)
+    plt.plot(np.arange(0, 500) * dt * lambda_max, error_single)
 
     min_val = np.minimum(np.min(error_all), np.min(error_single))*1.1
     max_val = np.maximum(np.max(error_all), np.max(error_single))*1.1
@@ -44,7 +47,7 @@ def plot_prediction_error(predictions, validations, lambda_max=0.93652738, dt=0.
     plt.plot(np.ones(30)*lambda_max, np.linspace(min_val, max_val, num=30), 'k--')
 
     plt.xlabel(r'$\lambda_1t$')
-    plt.ylabel(r'Cumulative error in $x_2$-axis')
-    plt.axis([0, len(predictions[0, 0])*dt, min_val, max_val])
+    plt.ylabel(r'Cumulative squared error in $x_2$-axis')
+    plt.axis([0, 500*dt*lambda_max, min_val, max_val])
     plt.legend(['Full information', 'Partial information'])
     plt.savefig('img/error_plots/pred_error.png')
